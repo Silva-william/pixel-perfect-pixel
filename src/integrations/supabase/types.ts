@@ -61,14 +61,51 @@ export type Database = {
           },
         ]
       }
+      material_pages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          material_id: string
+          page_number: number
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          material_id: string
+          page_number: number
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          material_id?: string
+          page_number?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_pages_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materials: {
         Row: {
           created_at: string
+          current_page: number
           id: string
           last_viewed_at: string | null
           name: string
           pages: number
           progress: number
+          status: string
           storage_path: string | null
           subject_id: string
           type: string
@@ -77,11 +114,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_page?: number
           id?: string
           last_viewed_at?: string | null
           name: string
           pages?: number
           progress?: number
+          status?: string
           storage_path?: string | null
           subject_id: string
           type?: string
@@ -90,11 +129,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_page?: number
           id?: string
           last_viewed_at?: string | null
           name?: string
           pages?: number
           progress?: number
+          status?: string
           storage_path?: string | null
           subject_id?: string
           type?: string
