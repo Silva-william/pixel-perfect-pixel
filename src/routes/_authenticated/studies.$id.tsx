@@ -135,7 +135,7 @@ function SubjectPage() {
         </TabsContent>
 
         <TabsContent value="materials">
-          <MaterialsPanel materials={materials} />
+          <MaterialsPanel subjectId={subject.id} />
         </TabsContent>
 
         <TabsContent value="summary">

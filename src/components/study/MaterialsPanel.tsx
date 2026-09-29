@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { listMaterials } from "@/lib/materials";
 import { FileStack, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MaterialCard } from "@/components/MaterialCard";
@@ -6,8 +7,13 @@ import { EmptyState } from "@/components/EmptyState";
 import { UploadArea } from "@/components/UploadArea";
 import type { Material } from "@/data/types";
 
-export function MaterialsPanel({ materials }: { materials: Material[] }) {
+export function MaterialsPanel({ subjectId }: { subjectId: string }) {
   const [uploading, setUploading] = useState(false);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const load = useCallback(() => {
+    listMaterials(subjectId).then(setMaterials).catch(() => setMaterials([]));
+  }, [subjectId]);
+  useEffect(load, [load]);
 
   return (
     <div className="space-y-4">
@@ -19,7 +25,7 @@ export function MaterialsPanel({ materials }: { materials: Material[] }) {
         </Button>
       </div>
 
-      {uploading ? <UploadArea /> : null}
+      {uploading ? <UploadArea subjectId={subjectId} onUploaded={() => { setUploading(false); load(); }} /> : null}
 
       {materials.length ? (
         <div className="space-y-3">
