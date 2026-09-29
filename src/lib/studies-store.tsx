@@ -17,7 +17,10 @@ type StudiesContextValue = {
   refresh: () => Promise<void>;
 };
 
-const StudiesContext = createContext<StudiesContextValue | null>(null);
+// Kept on globalThis so hot reloads of this file reuse the same context
+// (otherwise mounted consumers lose their provider and throw).
+const g = globalThis as { __studiesContext?: React.Context<StudiesContextValue | null> };
+const StudiesContext = (g.__studiesContext ??= createContext<StudiesContextValue | null>(null));
 
 type SubjectRow = {
   id: string;
