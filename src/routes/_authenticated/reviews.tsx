@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { currentUser, studiedDays, todayReview } from "@/data/mock";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/reviews")({
+export const Route = createFileRoute("/_authenticated/reviews")({
   head: () => ({
     meta: [
       { title: "Revisões — StudyAI" },

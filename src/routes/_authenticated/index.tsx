@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useStudies } from "@/lib/studies-store";
 import { currentUser, dashboardStats, recentActivity, todayReview } from "@/data/mock";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "Início — StudyAI" },

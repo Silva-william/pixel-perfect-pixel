@@ -20,7 +20,7 @@ import {
   weeklyStudyTime,
 } from "@/data/mock";
 
-export const Route = createFileRoute("/progress")({
+export const Route = createFileRoute("/_authenticated/progress")({
   head: () => ({
     meta: [
       { title: "Meu progresso — StudyAI" },

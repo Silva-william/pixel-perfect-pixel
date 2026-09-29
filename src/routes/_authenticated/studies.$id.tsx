@@ -16,7 +16,7 @@ import { getFlashcards, getKnowledgeCards, getMaterials, getQuizzes, getSummary 
 import { subjectSoft } from "@/lib/subject-colors";
 import { useState } from "react";
 
-export const Route = createFileRoute("/studies/$id")({
+export const Route = createFileRoute("/_authenticated/studies/$id")({
   head: () => ({
     meta: [
       { title: "Matéria — StudyAI" },

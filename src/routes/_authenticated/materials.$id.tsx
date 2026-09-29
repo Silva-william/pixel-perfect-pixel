@@ -13,7 +13,7 @@ import { ComingSoon } from "@/components/ComingSoon";
 import { getMaterial, getSubject, getSummary } from "@/data/mock";
 import { SummaryPanel } from "@/components/study/SummaryPanel";
 
-export const Route = createFileRoute("/materials/$id")({
+export const Route = createFileRoute("/_authenticated/materials/$id")({
   head: () => ({
     meta: [
       { title: "Material — StudyAI" },

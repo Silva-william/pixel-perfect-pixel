@@ -19,7 +19,7 @@ import { useTheme, type ThemeMode } from "@/lib/theme";
 import { currentUser } from "@/data/mock";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/settings")({
+export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
       { title: "Configurações — StudyAI" },
