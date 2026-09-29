@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -9,9 +10,9 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ProgressBar } from "@/components/ProgressBar";
-import { ComingSoon } from "@/components/ComingSoon";
-import { getMaterial, getSubject, getSummary } from "@/data/mock";
-import { SummaryPanel } from "@/components/study/SummaryPanel";
+import { MaterialReader } from "@/components/study/MaterialReader";
+import { getMaterialDetail, type MaterialDetail } from "@/lib/materials";
+import { useStudies } from "@/lib/studies-store";
 
 export const Route = createFileRoute("/_authenticated/materials/$id")({
   head: () => ({
@@ -30,11 +31,17 @@ export const Route = createFileRoute("/_authenticated/materials/$id")({
 
 function MaterialPage() {
   const { id } = Route.useParams();
-  const material = getMaterial(id);
+  const { getSubject } = useStudies();
+  const [material, setMaterial] = useState<MaterialDetail | null | undefined>(undefined);
+  const load = useCallback(() => {
+    getMaterialDetail(id).then(setMaterial).catch(() => setMaterial(null));
+  }, [id]);
+  useEffect(load, [load]);
+
+  if (material === undefined) return <p className="text-sm text-muted-foreground">Carregando...</p>;
   if (!material) throw notFound();
 
   const subject = getSubject(material.subjectId);
-  const summary = getSummary(material.subjectId);
 
   return (
     <>
@@ -88,12 +95,7 @@ function MaterialPage() {
         </div>
       </div>
 
-      <ComingSoon
-        title="Leitor do material"
-        description="A leitura do arquivo original e a navegação por páginas serão implementadas junto com o processamento de arquivos."
-      />
-
-      <SummaryPanel summary={summary} />
+      <MaterialReader key={material.id + material.status} material={material} onChanged={load} />
     </>
   );
 }

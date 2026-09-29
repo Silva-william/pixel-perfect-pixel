@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Material, MaterialType } from "@/data/types";
 
-/** Materials repository: file in Storage (materials/<userId>/...), metadata in the materials table. */
+/** Materials repository: file in Storage (materials/<userId>/...), metadata + extracted text in the database. */
 
 function relative(iso: string | null) {
   if (!iso) return "nunca";
@@ -12,14 +12,31 @@ function relative(iso: string | null) {
   return `há ${Math.round(min / 1440)} dias`;
 }
 
-export async function listMaterials(subjectId: string): Promise<Material[]> {
-  const { data, error } = await supabase
-    .from("materials")
-    .select("id, subject_id, name, type, pages, progress, last_viewed_at, created_at")
-    .eq("subject_id", subjectId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map((r) => ({
+const COLS =
+  "id, subject_id, name, type, pages, progress, status, current_page, storage_path, last_viewed_at, created_at";
+
+type Row = {
+  id: string;
+  subject_id: string;
+  name: string;
+  type: string;
+  pages: number;
+  progress: number;
+  status: string;
+  current_page: number;
+  storage_path: string | null;
+  last_viewed_at: string | null;
+  created_at: string;
+};
+
+export type MaterialDetail = Material & {
+  status: string;
+  currentPage: number;
+  storagePath: string | null;
+};
+
+function toMaterial(r: Row): MaterialDetail {
+  return {
     id: r.id,
     subjectId: r.subject_id,
     name: r.name,
@@ -27,7 +44,89 @@ export async function listMaterials(subjectId: string): Promise<Material[]> {
     pages: r.pages,
     progress: r.progress,
     lastViewed: relative(r.last_viewed_at ?? r.created_at),
-  }));
+    status: r.status,
+    currentPage: r.current_page,
+    storagePath: r.storage_path,
+  };
+}
+
+export async function listMaterials(subjectId: string): Promise<Material[]> {
+  const { data, error } = await supabase
+    .from("materials")
+    .select(COLS)
+    .eq("subject_id", subjectId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as Row[]).map(toMaterial);
+}
+
+export async function getMaterialDetail(id: string): Promise<MaterialDetail | null> {
+  const { data, error } = await supabase.from("materials").select(COLS).eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? toMaterial(data as Row) : null;
+}
+
+export async function getPage(materialId: string, page: number): Promise<string> {
+  const { data } = await supabase
+    .from("material_pages")
+    .select("content")
+    .eq("material_id", materialId)
+    .eq("page_number", page)
+    .maybeSingle();
+  return data?.content ?? "";
+}
+
+export async function saveReadingPosition(id: string, page: number, total: number) {
+  const progress = total ? Math.round((page / total) * 100) : 0;
+  await supabase
+    .from("materials")
+    .update({ current_page: page, progress, last_viewed_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+export async function getOriginalUrl(path: string) {
+  const { data, error } = await supabase.storage.from("materials").createSignedUrl(path, 3600);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+/** Extracts the text of a file and stores it page by page. */
+export async function processMaterial(id: string, type: string, data: ArrayBuffer) {
+  const { data: u } = await supabase.auth.getUser();
+  const userId = u.user?.id;
+  if (!userId) throw new Error("Você precisa estar conectado.");
+  await supabase.from("materials").update({ status: "processing" }).eq("id", id);
+  try {
+    const { extractPages } = await import("@/lib/extract-text");
+    const pages = await extractPages(type, data);
+    await supabase.from("material_pages").delete().eq("material_id", id);
+    const rows = pages.map((content, i) => ({
+      user_id: userId,
+      material_id: id,
+      page_number: i + 1,
+      content: content.replace(/\u0000/g, ""),
+    }));
+    for (let i = 0; i < rows.length; i += 200) {
+      const { error } = await supabase.from("material_pages").insert(rows.slice(i, i + 200));
+      if (error) throw error;
+    }
+    const hasText = pages.some((p) => p.trim().length > 0);
+    await supabase
+      .from("materials")
+      .update({ status: hasText ? "ready" : "no_text", pages: pages.length })
+      .eq("id", id);
+  } catch (e) {
+    await supabase.from("materials").update({ status: "failed" }).eq("id", id);
+    throw e;
+  }
+}
+
+/** Re-processes an already uploaded file by downloading it from storage. */
+export async function reprocessMaterial(m: MaterialDetail) {
+  if (!m.storagePath) throw new Error("Arquivo original não encontrado.");
+  const { data, error } = await supabase.storage.from("materials").download(m.storagePath);
+  if (error) throw error;
+  await processMaterial(m.id, m.type, await data.arrayBuffer());
 }
 
 export async function uploadMaterial(subjectId: string, file: File) {
@@ -43,15 +142,14 @@ export async function uploadMaterial(subjectId: string, file: File) {
     .upload(path, file, file.type ? { contentType: file.type } : {});
   if (upErr) throw upErr;
 
-  const { error } = await supabase.from("materials").insert({
-    user_id: userId,
-    subject_id: subjectId,
-    name: file.name,
-    type,
-    storage_path: path,
-  });
+  const { data: row, error } = await supabase
+    .from("materials")
+    .insert({ user_id: userId, subject_id: subjectId, name: file.name, type, storage_path: path })
+    .select("id")
+    .single();
   if (error) {
     await supabase.storage.from("materials").remove([path]);
     throw error;
   }
+  await processMaterial(row.id, type, await file.arrayBuffer());
 }
