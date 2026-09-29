@@ -25,12 +25,17 @@ export function NewStudyDialog({ trigger }: { trigger: ReactNode }) {
   const [description, setDescription] = useState("");
   const [color, setColor] = useState<SubjectColor>("green");
 
-  const submit = () => {
+  const submit = async () => {
     if (!name.trim()) {
       toast.error("Dê um nome para a matéria.");
       return;
     }
-    createSubject({ name: name.trim(), description: description.trim(), color });
+    try {
+      await createSubject({ name: name.trim(), description: description.trim(), color });
+    } catch {
+      toast.error("Não foi possível criar o estudo.");
+      return;
+    }
     toast.success("Estudo criado com sucesso.");
     setName("");
     setDescription("");

@@ -7,7 +7,8 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { NewStudyDialog } from "@/components/NewStudyDialog";
 import { Button } from "@/components/ui/button";
 import { useStudies } from "@/lib/studies-store";
-import { currentUser, dashboardStats, recentActivity, todayReview } from "@/data/mock";
+import { useAuth } from "@/lib/auth";
+import { dashboardStats, recentActivity, todayReview } from "@/data/mock";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -29,13 +30,14 @@ export const Route = createFileRoute("/_authenticated/")({
 
 function Dashboard() {
   const { subjects } = useStudies();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const featured = subjects[0];
 
   return (
     <>
       <PageHeader
-        title={`Olá, ${currentUser.name} 👋`}
+        title={`Olá, ${profile?.name ?? ""} 👋`}
         subtitle="Continue seus estudos e mantenha seu ritmo."
         action={
           <NewStudyDialog

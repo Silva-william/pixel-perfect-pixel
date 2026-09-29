@@ -44,11 +44,12 @@ const tabs = [
 
 function SubjectPage() {
   const { id } = Route.useParams();
-  const { getSubject } = useStudies();
+  const { getSubject, loading } = useStudies();
   const subject = getSubject(id);
   const [quizOpen, setQuizOpen] = useState(false);
 
   if (!subject) {
+    if (loading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
     throw notFound();
   }
 
