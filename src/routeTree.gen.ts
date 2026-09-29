@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedFlashcardsRouteImport } from './routes/_authenticated/flashcards'
 import { Route as AuthenticatedProgressRouteImport } from './routes/_authenticated/progress'
@@ -19,66 +21,77 @@ import { Route as AuthenticatedMaterialsIdRouteImport } from './routes/_authenti
 import { Route as AuthenticatedStudiesIndexRouteImport } from './routes/_authenticated/studies.index'
 import { Route as AuthenticatedStudiesIdRouteImport } from './routes/_authenticated/studies.$id'
 
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: '/_authenticated/',
-  path: '/',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFlashcardsRoute = AuthenticatedFlashcardsRouteImport.update({
-  id: '/_authenticated/flashcards',
+  id: '/flashcards',
   path: '/flashcards',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProgressRoute = AuthenticatedProgressRouteImport.update({
-  id: '/_authenticated/progress',
+  id: '/progress',
   path: '/progress',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedQuizzesRoute = AuthenticatedQuizzesRouteImport.update({
-  id: '/_authenticated/quizzes',
+  id: '/quizzes',
   path: '/quizzes',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedReviewsRoute = AuthenticatedReviewsRouteImport.update({
-  id: '/_authenticated/reviews',
+  id: '/reviews',
   path: '/reviews',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
-  id: '/_authenticated/settings',
+  id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMaterialsIdRoute =
   AuthenticatedMaterialsIdRouteImport.update({
-    id: '/_authenticated/materials/$id',
+    id: '/materials/$id',
     path: '/materials/$id',
-    getParentRoute: () => rootRouteImport,
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedStudiesIndexRoute =
   AuthenticatedStudiesIndexRouteImport.update({
-    id: '/_authenticated/studies/',
+    id: '/studies/',
     path: '/studies/',
-    getParentRoute: () => rootRouteImport,
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedStudiesIdRoute = AuthenticatedStudiesIdRouteImport.update({
-  id: '/_authenticated/studies/$id',
+  id: '/studies/$id',
   path: '/studies/$id',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRoute
   '/flashcards': typeof AuthenticatedFlashcardsRoute
   '/progress': typeof AuthenticatedProgressRoute
   '/quizzes': typeof AuthenticatedQuizzesRoute
   '/reviews': typeof AuthenticatedReviewsRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/': typeof AuthenticatedIndexRoute
   '/materials/$id': typeof AuthenticatedMaterialsIdRoute
   '/studies/$id': typeof AuthenticatedStudiesIdRoute
   '/studies/': typeof AuthenticatedStudiesIndexRoute
 }
 export interface FileRoutesByTo {
+  '/auth': typeof AuthRoute
   '/flashcards': typeof AuthenticatedFlashcardsRoute
   '/progress': typeof AuthenticatedProgressRoute
   '/quizzes': typeof AuthenticatedQuizzesRoute
@@ -91,6 +104,8 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/_authenticated/flashcards': typeof AuthenticatedFlashcardsRoute
   '/_authenticated/progress': typeof AuthenticatedProgressRoute
   '/_authenticated/quizzes': typeof AuthenticatedQuizzesRoute
@@ -104,17 +119,19 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
+    | '/auth'
     | '/flashcards'
     | '/progress'
     | '/quizzes'
     | '/reviews'
     | '/settings'
-    | '/'
     | '/materials/$id'
     | '/studies/$id'
     | '/studies/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/auth'
     | '/flashcards'
     | '/progress'
     | '/quizzes'
@@ -126,6 +143,8 @@ export interface FileRouteTypes {
     | '/studies'
   id:
     | '__root__'
+    | '/_authenticated'
+    | '/auth'
     | '/_authenticated/flashcards'
     | '/_authenticated/progress'
     | '/_authenticated/quizzes'
@@ -138,6 +157,93 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+}
+
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/flashcards': {
+      id: '/_authenticated/flashcards'
+      path: '/flashcards'
+      fullPath: '/flashcards'
+      preLoaderRoute: typeof AuthenticatedFlashcardsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/progress': {
+      id: '/_authenticated/progress'
+      path: '/progress'
+      fullPath: '/progress'
+      preLoaderRoute: typeof AuthenticatedProgressRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/quizzes': {
+      id: '/_authenticated/quizzes'
+      path: '/quizzes'
+      fullPath: '/quizzes'
+      preLoaderRoute: typeof AuthenticatedQuizzesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reviews': {
+      id: '/_authenticated/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof AuthenticatedReviewsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/materials/$id': {
+      id: '/_authenticated/materials/$id'
+      path: '/materials/$id'
+      fullPath: '/materials/$id'
+      preLoaderRoute: typeof AuthenticatedMaterialsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/studies/': {
+      id: '/_authenticated/studies/'
+      path: '/studies'
+      fullPath: '/studies/'
+      preLoaderRoute: typeof AuthenticatedStudiesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/studies/$id': {
+      id: '/_authenticated/studies/$id'
+      path: '/studies/$id'
+      fullPath: '/studies/$id'
+      preLoaderRoute: typeof AuthenticatedStudiesIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+  }
+}
+
+interface AuthenticatedRouteRouteChildren {
   AuthenticatedFlashcardsRoute: typeof AuthenticatedFlashcardsRoute
   AuthenticatedProgressRoute: typeof AuthenticatedProgressRoute
   AuthenticatedQuizzesRoute: typeof AuthenticatedQuizzesRoute
@@ -149,75 +255,7 @@ export interface RootRouteChildren {
   AuthenticatedStudiesIndexRoute: typeof AuthenticatedStudiesIndexRoute
 }
 
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/_authenticated/': {
-      id: '/_authenticated/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/flashcards': {
-      id: '/_authenticated/flashcards'
-      path: '/flashcards'
-      fullPath: '/flashcards'
-      preLoaderRoute: typeof AuthenticatedFlashcardsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/progress': {
-      id: '/_authenticated/progress'
-      path: '/progress'
-      fullPath: '/progress'
-      preLoaderRoute: typeof AuthenticatedProgressRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/quizzes': {
-      id: '/_authenticated/quizzes'
-      path: '/quizzes'
-      fullPath: '/quizzes'
-      preLoaderRoute: typeof AuthenticatedQuizzesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/reviews': {
-      id: '/_authenticated/reviews'
-      path: '/reviews'
-      fullPath: '/reviews'
-      preLoaderRoute: typeof AuthenticatedReviewsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/settings': {
-      id: '/_authenticated/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/materials/$id': {
-      id: '/_authenticated/materials/$id'
-      path: '/materials/$id'
-      fullPath: '/materials/$id'
-      preLoaderRoute: typeof AuthenticatedMaterialsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/studies/': {
-      id: '/_authenticated/studies/'
-      path: '/studies'
-      fullPath: '/studies/'
-      preLoaderRoute: typeof AuthenticatedStudiesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/studies/$id': {
-      id: '/_authenticated/studies/$id'
-      path: '/studies/$id'
-      fullPath: '/studies/$id'
-      preLoaderRoute: typeof AuthenticatedStudiesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
-}
-
-const rootRouteChildren: RootRouteChildren = {
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFlashcardsRoute: AuthenticatedFlashcardsRoute,
   AuthenticatedProgressRoute: AuthenticatedProgressRoute,
   AuthenticatedQuizzesRoute: AuthenticatedQuizzesRoute,
@@ -227,6 +265,14 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedMaterialsIdRoute: AuthenticatedMaterialsIdRoute,
   AuthenticatedStudiesIdRoute: AuthenticatedStudiesIdRoute,
   AuthenticatedStudiesIndexRoute: AuthenticatedStudiesIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
