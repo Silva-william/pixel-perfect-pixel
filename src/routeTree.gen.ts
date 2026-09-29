@@ -10,33 +10,80 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FlashcardsRouteImport } from './routes/flashcards'
+import { Route as MaterialsIdRouteImport } from './routes/materials.$id'
+import { Route as StudiesIndexRouteImport } from './routes/studies.index'
+import { Route as StudiesIdRouteImport } from './routes/studies.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FlashcardsRoute = FlashcardsRouteImport.update({
+  id: '/flashcards',
+  path: '/flashcards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MaterialsIdRoute = MaterialsIdRouteImport.update({
+  id: '/materials/$id',
+  path: '/materials/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudiesIndexRoute = StudiesIndexRouteImport.update({
+  id: '/studies/',
+  path: '/studies/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudiesIdRoute = StudiesIdRouteImport.update({
+  id: '/studies/$id',
+  path: '/studies/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/flashcards': typeof FlashcardsRoute
+  '/materials/$id': typeof MaterialsIdRoute
+  '/studies/$id': typeof StudiesIdRoute
+  '/studies/': typeof StudiesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/flashcards': typeof FlashcardsRoute
+  '/materials/$id': typeof MaterialsIdRoute
+  '/studies/$id': typeof StudiesIdRoute
+  '/studies': typeof StudiesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/flashcards': typeof FlashcardsRoute
+  '/materials/$id': typeof MaterialsIdRoute
+  '/studies/$id': typeof StudiesIdRoute
+  '/studies/': typeof StudiesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    '/' | '/flashcards' | '/materials/$id' | '/studies/$id' | '/studies/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/flashcards' | '/materials/$id' | '/studies/$id' | '/studies'
+  id:
+    | '__root__'
+    | '/'
+    | '/flashcards'
+    | '/materials/$id'
+    | '/studies/$id'
+    | '/studies/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FlashcardsRoute: typeof FlashcardsRoute
+  MaterialsIdRoute: typeof MaterialsIdRoute
+  StudiesIdRoute: typeof StudiesIdRoute
+  StudiesIndexRoute: typeof StudiesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +95,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/flashcards': {
+      id: '/flashcards'
+      path: '/flashcards'
+      fullPath: '/flashcards'
+      preLoaderRoute: typeof FlashcardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/materials/$id': {
+      id: '/materials/$id'
+      path: '/materials/$id'
+      fullPath: '/materials/$id'
+      preLoaderRoute: typeof MaterialsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studies/': {
+      id: '/studies/'
+      path: '/studies'
+      fullPath: '/studies/'
+      preLoaderRoute: typeof StudiesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studies/$id': {
+      id: '/studies/$id'
+      path: '/studies/$id'
+      fullPath: '/studies/$id'
+      preLoaderRoute: typeof StudiesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FlashcardsRoute: FlashcardsRoute,
+  MaterialsIdRoute: MaterialsIdRoute,
+  StudiesIdRoute: StudiesIdRoute,
+  StudiesIndexRoute: StudiesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
