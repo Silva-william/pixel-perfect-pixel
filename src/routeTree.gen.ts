@@ -11,6 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FlashcardsRouteImport } from './routes/flashcards'
+import { Route as ProgressRouteImport } from './routes/progress'
+import { Route as QuizzesRouteImport } from './routes/quizzes'
+import { Route as ReviewsRouteImport } from './routes/reviews'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as MaterialsIdRouteImport } from './routes/materials.$id'
 import { Route as StudiesIndexRouteImport } from './routes/studies.index'
 import { Route as StudiesIdRouteImport } from './routes/studies.$id'
@@ -23,6 +27,26 @@ const IndexRoute = IndexRouteImport.update({
 const FlashcardsRoute = FlashcardsRouteImport.update({
   id: '/flashcards',
   path: '/flashcards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProgressRoute = ProgressRouteImport.update({
+  id: '/progress',
+  path: '/progress',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuizzesRoute = QuizzesRouteImport.update({
+  id: '/quizzes',
+  path: '/quizzes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewsRoute = ReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MaterialsIdRoute = MaterialsIdRouteImport.update({
@@ -44,6 +68,10 @@ const StudiesIdRoute = StudiesIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/flashcards': typeof FlashcardsRoute
+  '/progress': typeof ProgressRoute
+  '/quizzes': typeof QuizzesRoute
+  '/reviews': typeof ReviewsRoute
+  '/settings': typeof SettingsRoute
   '/materials/$id': typeof MaterialsIdRoute
   '/studies/$id': typeof StudiesIdRoute
   '/studies/': typeof StudiesIndexRoute
@@ -51,6 +79,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/flashcards': typeof FlashcardsRoute
+  '/progress': typeof ProgressRoute
+  '/quizzes': typeof QuizzesRoute
+  '/reviews': typeof ReviewsRoute
+  '/settings': typeof SettingsRoute
   '/materials/$id': typeof MaterialsIdRoute
   '/studies/$id': typeof StudiesIdRoute
   '/studies': typeof StudiesIndexRoute
@@ -59,6 +91,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/flashcards': typeof FlashcardsRoute
+  '/progress': typeof ProgressRoute
+  '/quizzes': typeof QuizzesRoute
+  '/reviews': typeof ReviewsRoute
+  '/settings': typeof SettingsRoute
   '/materials/$id': typeof MaterialsIdRoute
   '/studies/$id': typeof StudiesIdRoute
   '/studies/': typeof StudiesIndexRoute
@@ -66,13 +102,34 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/flashcards' | '/materials/$id' | '/studies/$id' | '/studies/'
+    | '/'
+    | '/flashcards'
+    | '/progress'
+    | '/quizzes'
+    | '/reviews'
+    | '/settings'
+    | '/materials/$id'
+    | '/studies/$id'
+    | '/studies/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/flashcards' | '/materials/$id' | '/studies/$id' | '/studies'
+  to:
+    | '/'
+    | '/flashcards'
+    | '/progress'
+    | '/quizzes'
+    | '/reviews'
+    | '/settings'
+    | '/materials/$id'
+    | '/studies/$id'
+    | '/studies'
   id:
     | '__root__'
     | '/'
     | '/flashcards'
+    | '/progress'
+    | '/quizzes'
+    | '/reviews'
+    | '/settings'
     | '/materials/$id'
     | '/studies/$id'
     | '/studies/'
@@ -81,6 +138,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FlashcardsRoute: typeof FlashcardsRoute
+  ProgressRoute: typeof ProgressRoute
+  QuizzesRoute: typeof QuizzesRoute
+  ReviewsRoute: typeof ReviewsRoute
+  SettingsRoute: typeof SettingsRoute
   MaterialsIdRoute: typeof MaterialsIdRoute
   StudiesIdRoute: typeof StudiesIdRoute
   StudiesIndexRoute: typeof StudiesIndexRoute
@@ -100,6 +161,34 @@ declare module '@tanstack/react-router' {
       path: '/flashcards'
       fullPath: '/flashcards'
       preLoaderRoute: typeof FlashcardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/progress': {
+      id: '/progress'
+      path: '/progress'
+      fullPath: '/progress'
+      preLoaderRoute: typeof ProgressRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quizzes': {
+      id: '/quizzes'
+      path: '/quizzes'
+      fullPath: '/quizzes'
+      preLoaderRoute: typeof QuizzesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reviews': {
+      id: '/reviews'
+      path: '/reviews'
+      fullPath: '/reviews'
+      preLoaderRoute: typeof ReviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/materials/$id': {
@@ -129,6 +218,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FlashcardsRoute: FlashcardsRoute,
+  ProgressRoute: ProgressRoute,
+  QuizzesRoute: QuizzesRoute,
+  ReviewsRoute: ReviewsRoute,
+  SettingsRoute: SettingsRoute,
   MaterialsIdRoute: MaterialsIdRoute,
   StudiesIdRoute: StudiesIdRoute,
   StudiesIndexRoute: StudiesIndexRoute,

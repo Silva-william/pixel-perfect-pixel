@@ -24,12 +24,12 @@ export function KnowledgeCards({ cards }: { cards: KnowledgeCard[] }) {
     <div className="space-y-4">
       <div className="card-soft flex min-h-64 flex-col justify-between gap-6 p-8">
         <span className="text-xs uppercase tracking-widest text-muted-foreground">
-          {card.label}
+          {card?.label}
         </span>
         <div className="space-y-3">
-          <h3 className="font-serif text-3xl uppercase leading-tight">{card.term}</h3>
+          <h3 className="font-serif text-3xl uppercase leading-tight">{card?.term}</h3>
           <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
-            {card.definition}
+            {card?.definition}
           </p>
         </div>
         <p className="text-right text-xs text-muted-foreground">
