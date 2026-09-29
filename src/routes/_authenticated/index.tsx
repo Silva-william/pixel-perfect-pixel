@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BookMarked, Brain, Library, Plus, Target, Clock } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
@@ -8,7 +9,8 @@ import { NewStudyDialog } from "@/components/NewStudyDialog";
 import { Button } from "@/components/ui/button";
 import { useStudies } from "@/lib/studies-store";
 import { useAuth } from "@/lib/auth";
-import { dashboardStats, recentActivity, todayReview } from "@/data/mock";
+import { listActivity, type Activity } from "@/lib/activity";
+import { dashboardStats, todayReview } from "@/data/mock";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -29,10 +31,24 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 function Dashboard() {
-  const { subjects } = useStudies();
+  const { subjects, refresh } = useStudies();
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const featured = subjects[0];
+  const [activity, setActivity] = useState<Activity[] | null>(null);
+
+  // Always show fresh progress and history when coming back to the home page.
+  useEffect(() => {
+    void refresh();
+    listActivity(8).then(setActivity);
+  }, [refresh]);
+
+  // The subject whose material was opened/listened most recently.
+  const featured =
+    [...subjects]
+      .filter((s) => s.lastStudiedAt)
+      .sort((a, b) => (b.lastStudiedAt! > a.lastStudiedAt! ? 1 : -1))[0] ?? subjects[0];
+  const totalMaterials = subjects.reduce((n, s) => n + s.materialsCount, 0);
+  const totalFlashcards = subjects.reduce((n, s) => n + (s.flashcardsCount ?? 0), 0);
 
   return (
     <>
@@ -65,9 +81,13 @@ function Dashboard() {
             <ProgressBar value={featured.continueFrom.progress} showLabel />
             <Button
               className="self-start"
-              onClick={() => navigate({ to: "/studies/$id", params: { id: featured.id } })}
+              onClick={() =>
+                featured.continueFrom.materialId
+                  ? navigate({ to: "/materials/$id", params: { id: featured.continueFrom.materialId } })
+                  : navigate({ to: "/studies/$id", params: { id: featured.id } })
+              }
             >
-              Continuar estudando
+              {featured.continueFrom.materialId ? "Continuar estudando" : "Abrir matéria"}
             </Button>
           </div>
         </section>
@@ -81,12 +101,12 @@ function Dashboard() {
         />
         <StatCard
           icon={<BookMarked className="size-4" />}
-          value={dashboardStats.materials}
+          value={totalMaterials}
           label="Materiais"
         />
         <StatCard
           icon={<Brain className="size-4" />}
-          value={dashboardStats.flashcards}
+          value={totalFlashcards}
           label="Flashcards"
         />
         <StatCard
@@ -114,12 +134,33 @@ function Dashboard() {
         <div className="space-y-4 lg:col-span-2">
           <h2 className="text-lg font-semibold">Atividade recente</h2>
           <ul className="card-soft divide-y divide-border">
-            {recentActivity.map((item) => (
-              <li key={item.id} className="flex items-center justify-between gap-4 px-5 py-4">
-                <span className="text-sm">{item.text}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">{item.time}</span>
+            {activity === null ? (
+              <li className="px-5 py-4 text-sm text-muted-foreground">Carregando...</li>
+            ) : activity.length === 0 ? (
+              <li className="px-5 py-4 text-sm text-muted-foreground">
+                Nenhuma atividade ainda. Abra um material para começar.
               </li>
-            ))}
+            ) : (
+              activity.map((item) => (
+                <li key={item.id}>
+                  {item.materialId ? (
+                    <Link
+                      to="/materials/$id"
+                      params={{ id: item.materialId }}
+                      className="flex items-center justify-between gap-4 px-5 py-4 transition-colors hover:bg-muted/50"
+                    >
+                      <span className="text-sm">{item.text}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{item.time}</span>
+                    </Link>
+                  ) : (
+                    <div className="flex items-center justify-between gap-4 px-5 py-4">
+                      <span className="text-sm">{item.text}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{item.time}</span>
+                    </div>
+                  )}
+                </li>
+              ))
+            )}
           </ul>
         </div>
 

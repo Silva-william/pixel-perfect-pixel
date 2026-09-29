@@ -16,7 +16,7 @@ import { TutorThreads } from "@/components/study/TutorThreads";
 import { ReviewSession } from "@/components/study/ReviewSession";
 import type { Flashcard, KnowledgeCard, Quiz, SummaryDoc } from "@/data/types";
 import { subjectSoft } from "@/lib/subject-colors";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/studies/$id")({
   head: () => ({
@@ -46,9 +46,12 @@ const tabs = [
 
 function SubjectPage() {
   const { id } = Route.useParams();
-  const { getSubject, loading } = useStudies();
+  const { getSubject, loading, refresh } = useStudies();
   const subject = getSubject(id);
   const [quizOpen, setQuizOpen] = useState(false);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   if (!subject) {
     if (loading) return <p className="text-sm text-muted-foreground">Carregando...</p>;
@@ -121,13 +124,20 @@ function SubjectPage() {
             />
           </div>
 
-          <div className="card-soft space-y-4 p-6">
+          <div className="card-soft flex flex-col gap-4 p-6">
             <h3 className="text-base font-semibold">Continue de onde parou</h3>
             <div className="space-y-1">
               <p className="font-serif text-xl">{subject.continueFrom.title}</p>
               <p className="text-sm text-muted-foreground">{subject.continueFrom.chapter}</p>
             </div>
             <ProgressBar value={subject.continueFrom.progress} showLabel />
+            {subject.continueFrom.materialId ? (
+              <Button asChild className="self-start">
+                <Link to="/materials/$id" params={{ id: subject.continueFrom.materialId }}>
+                  Continuar de onde parei
+                </Link>
+              </Button>
+            ) : null}
           </div>
         </TabsContent>
 
