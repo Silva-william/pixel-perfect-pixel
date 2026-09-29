@@ -16,10 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTheme, type ThemeMode } from "@/lib/theme";
-import { currentUser } from "@/data/mock";
+import { useEffect } from "react";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/settings")({
+export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
       { title: "Configurações — StudyAI" },
@@ -51,9 +53,27 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const [name, setName] = useState(currentUser.name);
-  const [email, setEmail] = useState(currentUser.email);
-  const [goal, setGoal] = useState([currentUser.dailyGoalMinutes]);
+  const { profile, session, refreshProfile } = useAuth();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [goal, setGoal] = useState([45]);
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name);
+      setGoal([profile.daily_goal_minutes]);
+    }
+    setEmail(session?.user.email ?? "");
+  }, [profile, session]);
+  const save = async () => {
+    if (!profile) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ name: name.trim(), daily_goal_minutes: goal[0] ?? 45 })
+      .eq("id", profile.id);
+    if (error) { toast.error("Não foi possível salvar."); return; }
+    await refreshProfile();
+    toast.success("Preferências salvas.");
+  };
   const [notifications, setNotifications] = useState(true);
   const [language, setLanguage] = useState("pt-BR");
 
@@ -62,7 +82,7 @@ function SettingsPage() {
       <PageHeader
         title="Configurações"
         subtitle="Ajuste sua experiência de estudo."
-        action={<Button onClick={() => toast.success("Preferências salvas.")}>Salvar</Button>}
+        action={<Button onClick={save}>Salvar</Button>}
       />
 
       <Section title="Perfil">
@@ -73,7 +93,7 @@ function SettingsPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input id="email" type="email" value={email} readOnly disabled />
           </div>
         </div>
       </Section>

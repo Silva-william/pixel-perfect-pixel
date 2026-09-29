@@ -6,7 +6,7 @@ import { QuizRunner } from "@/components/QuizRunner";
 import { EmptyState } from "@/components/EmptyState";
 import { quizzes } from "@/data/mock";
 
-export const Route = createFileRoute("/quizzes")({
+export const Route = createFileRoute("/_authenticated/quizzes")({
   head: () => ({
     meta: [
       { title: "Quizzes — StudyAI" },

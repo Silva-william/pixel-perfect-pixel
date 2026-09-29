@@ -2,10 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Flame } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { currentUser, studiedDays, todayReview } from "@/data/mock";
+import { studiedDays, todayReview } from "@/data/mock";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/reviews")({
+export const Route = createFileRoute("/_authenticated/reviews")({
   head: () => ({
     meta: [
       { title: "Revisões — StudyAI" },
@@ -48,7 +48,7 @@ function ReviewsPage() {
 
         <div className="card-soft flex flex-col items-center justify-center gap-2 p-6 text-center">
           <Flame className="size-7 text-warning" />
-          <p className="font-serif text-3xl">{currentUser.streak} dias</p>
+          <p className="font-serif text-3xl">7 dias</p>
           <p className="text-sm text-muted-foreground">consecutivos de estudo</p>
         </div>
       </div>

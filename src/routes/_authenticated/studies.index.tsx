@@ -18,7 +18,7 @@ const filters: { value: Filter; label: string }[] = [
   { value: "done", label: "Concluídos" },
 ];
 
-export const Route = createFileRoute("/studies/")({
+export const Route = createFileRoute("/_authenticated/studies/")({
   head: () => ({
     meta: [
       { title: "Meus estudos — StudyAI" },

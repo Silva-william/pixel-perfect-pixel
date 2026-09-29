@@ -5,7 +5,7 @@ import { FlashcardView } from "@/components/FlashcardView";
 import { EmptyState } from "@/components/EmptyState";
 import { flashcards, dashboardStats } from "@/data/mock";
 
-export const Route = createFileRoute("/flashcards")({
+export const Route = createFileRoute("/_authenticated/flashcards")({
   head: () => ({
     meta: [
       { title: "Flashcards — StudyAI" },
