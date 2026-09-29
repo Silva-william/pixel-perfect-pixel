@@ -15,7 +15,7 @@ export function QuizRunner({ quiz, onExit }: { quiz: Quiz; onExit: () => void })
   const question = quiz.questions[index];
 
   const answer = () => {
-    if (selected === null) return;
+    if (selected === null || !question) return;
     const isCorrect = selected === question.correctIndex;
     const nextCorrect = correct + (isCorrect ? 1 : 0);
     setCorrect(nextCorrect);
