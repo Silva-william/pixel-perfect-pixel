@@ -51,7 +51,7 @@ export const generateStudyContent = createServerFn({ method: "POST" })
     }
 
     if (data.kind === "flashcards") {
-      const list = Array.isArray(parsed.flashcards) ? (parsed.flashcards as { front?: string; back?: string }[]) : [];
+      const list = Array.isArray(parsed['flashcards']) ? (parsed['flashcards'] as { front?: string; back?: string }[]) : [];
       const rows = list
         .filter((f) => f.front && f.back)
         .map((f) => ({ user_id: userId, subject_id: data.subjectId, front: String(f.front), back: String(f.back) }));
@@ -63,8 +63,8 @@ export const generateStudyContent = createServerFn({ method: "POST" })
       return { ok: true as const };
     }
 
-    if (data.kind === "quiz" && Array.isArray(parsed.questions)) {
-      parsed.questions = (parsed.questions as { prompt?: string; options?: unknown[]; correctIndex?: number }[])
+    if (data.kind === "quiz" && Array.isArray(parsed['questions'])) {
+      parsed['questions'] = (parsed['questions'] as { prompt?: string; options?: unknown[]; correctIndex?: number }[])
         .filter((q) => q.prompt && Array.isArray(q.options) && q.options.length >= 2)
         .map((q) => ({
           prompt: String(q.prompt),
