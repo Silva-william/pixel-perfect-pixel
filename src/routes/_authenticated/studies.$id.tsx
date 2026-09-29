@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useStudies } from "@/lib/studies-store";
 import { Generated } from "@/components/study/Generated";
 import { TutorThreads } from "@/components/study/TutorThreads";
+import { ReviewSession } from "@/components/study/ReviewSession";
 import type { Flashcard, KnowledgeCard, Quiz, SummaryDoc } from "@/data/types";
 import { subjectSoft } from "@/lib/subject-colors";
 import { useState } from "react";
@@ -160,7 +161,12 @@ function SubjectPage() {
 
         <TabsContent value="flashcards">
           <Generated<Flashcard[]> subjectId={subject.id} kind="flashcards">
-            {(list, regen) => <FlashcardDeck cards={list} action={regen} />}
+            {(_list, regen) => (
+              <div className="space-y-4">
+                <ReviewSession subjectId={subject.id} />
+                {regen}
+              </div>
+            )}
           </Generated>
         </TabsContent>
 
@@ -214,17 +220,3 @@ function SubjectPage() {
   );
 }
 
-function FlashcardDeck({ cards, action }: { cards: Flashcard[]; action: React.ReactNode }) {
-  const [index, setIndex] = useState(0);
-  const card = cards[index % cards.length];
-  if (!card) return null;
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Card {(index % cards.length) + 1} de {cards.length}
-      </p>
-      <FlashcardView key={card.id} card={card} onRate={() => setIndex((i) => i + 1)} />
-      {action}
-    </div>
-  );
-}

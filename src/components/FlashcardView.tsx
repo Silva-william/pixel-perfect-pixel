@@ -7,8 +7,10 @@ import type { Flashcard } from "@/data/types";
 export function FlashcardView({
   card,
   onRate,
+  hints,
 }: {
   card: Flashcard;
+  hints?: Record<"Difícil" | "Bom" | "Fácil", string>;
   onRate?: (rating: "Difícil" | "Bom" | "Fácil") => void;
 }) {
   const [flipped, setFlipped] = useState(false);
@@ -55,11 +57,16 @@ export function FlashcardView({
       <div className="flex flex-wrap items-center justify-center gap-2">
         <Button variant="outline" onClick={() => rate("Difícil")}>
           Difícil
+          {hints ? <span className="text-xs opacity-70">· {hints["Difícil"]}</span> : null}
         </Button>
         <Button variant="outline" onClick={() => rate("Bom")}>
           Bom
+          {hints ? <span className="text-xs opacity-70">· {hints["Bom"]}</span> : null}
         </Button>
-        <Button onClick={() => rate("Fácil")}>Fácil</Button>
+        <Button onClick={() => rate("Fácil")}>
+          Fácil
+          {hints ? <span className="text-xs opacity-70">· {hints["Fácil"]}</span> : null}
+        </Button>
         <Button variant="ghost" size="icon" aria-label="Virar" onClick={() => setFlipped((v) => !v)}>
           <RotateCcw className="size-4" />
         </Button>
