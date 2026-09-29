@@ -393,6 +393,12 @@ export function getQuiz(id: string) {
   return quizzes.find((q) => q.id === id);
 }
 
-export function getSummary(subjectId: string) {
-  return summaries.find((s) => s.subjectId === subjectId) ?? summaries[0];
+const fallbackSummary: SummaryDoc = {
+  subjectId: "",
+  text: "Ainda não há um resumo para este material. Ele será gerado automaticamente quando a IA for conectada.",
+  keyPoints: [],
+};
+
+export function getSummary(subjectId: string): SummaryDoc {
+  return summaries.find((s) => s.subjectId === subjectId) ?? summaries[0] ?? fallbackSummary;
 }
