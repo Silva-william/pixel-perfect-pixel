@@ -17,6 +17,7 @@ import { Route as AuthenticatedProgressRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedQuizzesRouteImport } from './routes/_authenticated/quizzes'
 import { Route as AuthenticatedReviewsRouteImport } from './routes/_authenticated/reviews'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiTutorRouteImport } from './routes/api/tutor'
 import { Route as AuthenticatedMaterialsIdRouteImport } from './routes/_authenticated/materials.$id'
 import { Route as AuthenticatedStudiesIndexRouteImport } from './routes/_authenticated/studies.index'
@@ -62,6 +63,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiTtsRoute = ApiTtsRouteImport.update({
+  id: '/api/tts',
+  path: '/api/tts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTutorRoute = ApiTutorRouteImport.update({
   id: '/api/tutor',
   path: '/api/tutor',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/quizzes': typeof AuthenticatedQuizzesRoute
   '/reviews': typeof AuthenticatedReviewsRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/api/tts': typeof ApiTtsRoute
   '/api/tutor': typeof ApiTutorRoute
   '/materials/$id': typeof AuthenticatedMaterialsIdRoute
   '/studies/$id': typeof AuthenticatedStudiesIdRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/quizzes': typeof AuthenticatedQuizzesRoute
   '/reviews': typeof AuthenticatedReviewsRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/api/tts': typeof ApiTtsRoute
   '/api/tutor': typeof ApiTutorRoute
   '/': typeof AuthenticatedIndexRoute
   '/materials/$id': typeof AuthenticatedMaterialsIdRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/_authenticated/quizzes': typeof AuthenticatedQuizzesRoute
   '/_authenticated/reviews': typeof AuthenticatedReviewsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/api/tts': typeof ApiTtsRoute
   '/api/tutor': typeof ApiTutorRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/materials/$id': typeof AuthenticatedMaterialsIdRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/quizzes'
     | '/reviews'
     | '/settings'
+    | '/api/tts'
     | '/api/tutor'
     | '/materials/$id'
     | '/studies/$id'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/quizzes'
     | '/reviews'
     | '/settings'
+    | '/api/tts'
     | '/api/tutor'
     | '/'
     | '/materials/$id'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/_authenticated/quizzes'
     | '/_authenticated/reviews'
     | '/_authenticated/settings'
+    | '/api/tts'
     | '/api/tutor'
     | '/_authenticated/'
     | '/_authenticated/materials/$id'
@@ -184,6 +196,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiTtsRoute: typeof ApiTtsRoute
   ApiTutorRoute: typeof ApiTutorRoute
 }
 
@@ -244,6 +257,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/tts': {
+      id: '/api/tts'
+      path: '/api/tts'
+      fullPath: '/api/tts'
+      preLoaderRoute: typeof ApiTtsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/tutor': {
       id: '/api/tutor'
@@ -315,6 +335,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiTtsRoute: ApiTtsRoute,
   ApiTutorRoute: ApiTutorRoute,
 }
 export const routeTree = rootRouteImport

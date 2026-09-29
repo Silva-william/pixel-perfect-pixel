@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, ExternalLink, Loader2, RefreshCw } from "luc
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ProgressBar";
+import { AudioPlayer } from "@/components/study/AudioPlayer";
 import {
   getOriginalUrl,
   getPage,
@@ -94,6 +95,8 @@ export function MaterialReader({
         <h2 className="text-base font-semibold">Leitura</h2>
         {toolbar}
       </div>
+
+      {text ? <AudioPlayer text={text} /> : null}
 
       <article className="card-soft min-h-[420px] p-6 sm:p-10">
         {text === null ? (
