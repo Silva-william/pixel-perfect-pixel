@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Headphones, Loader2, Pause, Play, Square } from "lucide-react";
+import { CloudCheck, Headphones, Loader2, Pause, Play, Square } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 const SPEEDS = [1, 1.25, 1.5, 2];
+const VOICE = "Kore";
+const BUCKET = "materials";
 
 /** Splits text into chunks at sentence boundaries (max ~1500 chars). */
 function chunkText(text: string, max = 1500): string[] {
@@ -25,7 +28,15 @@ function chunkText(text: string, max = 1500): string[] {
   return out;
 }
 
-async function synthesize(text: string, signal: AbortSignal): Promise<string> {
+async function shortHash(s: string) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(d)]
+    .slice(0, 8)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function synthesize(text: string, signal: AbortSignal): Promise<Blob> {
   const { data } = await supabase.auth.getSession();
   const res = await fetch("/api/tts", {
     method: "POST",
@@ -34,7 +45,7 @@ async function synthesize(text: string, signal: AbortSignal): Promise<string> {
       "Content-Type": "application/json",
       Authorization: `Bearer ${data.session?.access_token ?? ""}`,
     },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, voice: VOICE }),
   });
   if (!res.ok) {
     const msg = await res.text().catch(() => "");
@@ -42,51 +53,144 @@ async function synthesize(text: string, signal: AbortSignal): Promise<string> {
     if (res.status === 429) throw new Error("Muitas solicitações. Tente em instantes.");
     throw new Error(msg.slice(0, 200) || `Erro ${res.status}`);
   }
-  return URL.createObjectURL(await res.blob());
+  return res.blob();
 }
 
+export type ListenPosition = { chunk: number; seconds: number };
+
+/**
+ * Reads a page aloud. Generated audio is saved in the user's storage
+ * (<userId>/audio/<materialId>/p<page>-c<chunk>-<hash>) so replays are instant,
+ * and the listening position is reported so it can resume later.
+ */
 export function AudioPlayer({
   text,
+  materialId,
+  page,
+  resume,
+  autoPlay,
+  onProgress,
+  onStart,
   onFinished,
 }: {
   text: string;
-  /** Called when the whole text has been read. Return true to keep playing (next page). */
+  materialId: string;
+  page: number;
+  /** Where to resume on this page. */
+  resume?: ListenPosition | null;
+  autoPlay?: boolean;
+  onProgress?: (pos: ListenPosition) => void;
+  onStart?: () => void;
+  /** Called when the whole page has been read. */
   onFinished?: () => void;
 }) {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const folder = `${userId}/audio/${materialId}`;
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const urlsRef = useRef<Map<number, Promise<string>>>(new Map());
-  const [state, setState] = useState<"idle" | "loading" | "playing" | "paused">("idle");
-  const [chunk, setChunk] = useState(0);
-  const [speed, setSpeed] = useState(1);
+  const savedRef = useRef<Set<string>>(new Set());
   const chunks = useRef<string[]>([]);
+  const seekRef = useRef(0);
+  const lastSaveRef = useRef(0);
+  const stateRef = useRef<"idle" | "loading" | "playing" | "paused">("idle");
+  const chunkRef = useRef(0);
+  const cbRef = useRef({ onProgress, onStart, onFinished });
+  cbRef.current = { onProgress, onStart, onFinished };
 
-  const reset = () => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-    urlsRef.current.forEach((p) => p.then(URL.revokeObjectURL).catch(() => {}));
-    urlsRef.current.clear();
-    audioRef.current?.pause();
-    setState("idle");
-    setChunk(0);
+  const [state, _setState] = useState<"idle" | "loading" | "playing" | "paused">("idle");
+  const [chunk, _setChunk] = useState(0);
+  const [speed, setSpeed] = useState(1);
+  const [savedCount, setSavedCount] = useState(0);
+  const [hasResume, setHasResume] = useState(false);
+
+  const setState = (s: typeof state) => {
+    stateRef.current = s;
+    _setState(s);
+  };
+  const setChunk = (i: number) => {
+    chunkRef.current = i;
+    _setChunk(i);
   };
 
-  // New page/text: stop and drop cached audio.
+  const report = () => {
+    const a = audioRef.current;
+    cbRef.current.onProgress?.({ chunk: chunkRef.current, seconds: a ? Math.floor(a.currentTime) : 0 });
+  };
+
+  const fileName = async (i: number) => `p${page}-c${i}-${await shortHash(`${VOICE}|${chunks.current[i]}`)}`;
+
+  // New page/text: load cached audio list, set resume point, stop previous playback.
   useEffect(() => {
     chunks.current = chunkText(text);
-    return reset;
+    const start = resume && resume.chunk < chunks.current.length ? resume : null;
+    setChunk(start?.chunk ?? 0);
+    seekRef.current = start?.seconds ?? 0;
+    setHasResume(!!start && (start.chunk > 0 || start.seconds > 0));
+    savedRef.current = new Set();
+    setSavedCount(0);
+
+    let cancelled = false;
+    if (userId) {
+      void supabase.storage
+        .from(BUCKET)
+        .list(folder, { search: `p${page}-c`, limit: 1000 })
+        .then(async ({ data }) => {
+          if (cancelled) return;
+          const names = new Set((data ?? []).map((f) => f.name));
+          const expected = await Promise.all(chunks.current.map((_, i) => fileName(i)));
+          if (cancelled) return;
+          savedRef.current = new Set(expected.filter((n) => names.has(n)));
+          setSavedCount(savedRef.current.size);
+          if (autoPlay) void playChunk(chunkRef.current);
+        });
+    }
+
+    return () => {
+      cancelled = true;
+      if (stateRef.current === "playing" || stateRef.current === "paused") report();
+      abortRef.current?.abort();
+      abortRef.current = null;
+      urlsRef.current.forEach((p) => p.then(URL.revokeObjectURL).catch(() => {}));
+      urlsRef.current.clear();
+      audioRef.current?.pause();
+      stateRef.current = "idle";
+      _setState("idle");
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text]);
+  }, [text, userId]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = speed;
   }, [speed]);
 
+  const loadChunk = async (i: number, signal: AbortSignal): Promise<string> => {
+    const name = await fileName(i);
+    const path = `${folder}/${name}`;
+    if (savedRef.current.has(name)) {
+      const { data, error } = await supabase.storage.from(BUCKET).download(path);
+      if (!error && data) return URL.createObjectURL(data);
+    }
+    const blob = await synthesize(chunks.current[i]!, signal);
+    void supabase.storage
+      .from(BUCKET)
+      .upload(path, blob, { contentType: blob.type || "audio/wav" })
+      .then(({ error }) => {
+        if (!error || /exists|Duplicate/i.test(error.message)) {
+          savedRef.current.add(name);
+          setSavedCount(savedRef.current.size);
+        }
+      });
+    return URL.createObjectURL(blob);
+  };
+
   const getUrl = (i: number) => {
     if (!abortRef.current) abortRef.current = new AbortController();
     let p = urlsRef.current.get(i);
     if (!p) {
-      p = synthesize(chunks.current[i]!, abortRef.current.signal);
+      p = loadChunk(i, abortRef.current.signal);
       urlsRef.current.set(i, p);
     }
     return p;
@@ -96,7 +200,8 @@ export function AudioPlayer({
     if (i >= chunks.current.length) {
       setState("idle");
       setChunk(0);
-      onFinished?.();
+      setHasResume(false);
+      cbRef.current.onFinished?.();
       return;
     }
     setChunk(i);
@@ -105,11 +210,23 @@ export function AudioPlayer({
       const url = await getUrl(i);
       if (i + 1 < chunks.current.length) void getUrl(i + 1).catch(() => {});
       const a = audioRef.current!;
+      const seek = seekRef.current;
+      seekRef.current = 0;
       a.src = url;
       a.playbackRate = speed;
+      a.onloadedmetadata = () => {
+        if (seek > 0 && seek < a.duration) a.currentTime = seek;
+      };
+      a.ontimeupdate = () => {
+        if (Date.now() - lastSaveRef.current > 5000) {
+          lastSaveRef.current = Date.now();
+          report();
+        }
+      };
       a.onended = () => void playChunk(i + 1);
       await a.play();
       setState("playing");
+      setHasResume(false);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
       urlsRef.current.delete(i);
@@ -125,12 +242,23 @@ export function AudioPlayer({
     if (state === "playing") {
       a.pause();
       setState("paused");
+      report();
     } else if (state === "paused") {
       void a.play();
       setState("playing");
     } else if (state === "idle") {
+      cbRef.current.onStart?.();
       void playChunk(chunk);
     }
+  };
+
+  const stop = () => {
+    const a = audioRef.current!;
+    report();
+    seekRef.current = Math.floor(a.currentTime);
+    a.pause();
+    setState("idle");
+    setHasResume(true);
   };
 
   if (!text.trim()) return null;
@@ -144,27 +272,38 @@ export function AudioPlayer({
           <Loader2 className="size-4 animate-spin" />
         ) : state === "playing" ? (
           <Pause className="size-4" />
-        ) : state === "paused" ? (
+        ) : state === "paused" || hasResume ? (
           <Play className="size-4" />
         ) : (
           <Headphones className="size-4" />
         )}
         {state === "loading"
-          ? "Gerando áudio..."
+          ? savedRef.current.size > chunk
+            ? "Carregando..."
+            : "Gerando áudio..."
           : state === "playing"
             ? "Pausar"
-            : state === "paused"
-              ? "Continuar"
+            : state === "paused" || hasResume
+              ? "Continuar ouvindo"
               : "Ouvir página"}
       </Button>
-      {state !== "idle" ? (
-        <Button size="sm" variant="ghost" onClick={reset} aria-label="Parar">
+      {state === "playing" || state === "paused" ? (
+        <Button size="sm" variant="ghost" onClick={stop} aria-label="Parar">
           <Square className="size-4" />
         </Button>
       ) : null}
-      {state !== "idle" ? (
+      {state !== "idle" || hasResume ? (
         <span className="text-xs text-muted-foreground">
           Trecho {chunk + 1} de {total}
+        </span>
+      ) : null}
+      {savedCount > 0 ? (
+        <span
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+          title="Áudio guardado na sua conta: tocar de novo não gera outra vez"
+        >
+          <CloudCheck className="size-3.5 text-primary" />
+          {savedCount === total ? "Áudio salvo" : `${savedCount} de ${total} trechos salvos`}
         </span>
       ) : null}
       <div className="ml-auto flex items-center gap-1" role="group" aria-label="Velocidade">
