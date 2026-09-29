@@ -45,7 +45,7 @@ function AuthPage() {
             options: { data: { name }, emailRedirectTo: window.location.origin },
           });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     if (mode === "signup") toast.success("Conta criada! Verifique seu e-mail se for solicitado.");
   };
 

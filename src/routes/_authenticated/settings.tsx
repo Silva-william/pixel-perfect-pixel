@@ -70,7 +70,7 @@ function SettingsPage() {
       .from("profiles")
       .update({ name: name.trim(), daily_goal_minutes: goal[0] ?? 45 })
       .eq("id", profile.id);
-    if (error) return toast.error("Não foi possível salvar.");
+    if (error) { toast.error("Não foi possível salvar."); return; }
     await refreshProfile();
     toast.success("Preferências salvas.");
   };
