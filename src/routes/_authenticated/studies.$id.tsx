@@ -198,10 +198,13 @@ function SubjectPage() {
         </TabsContent>
 
         <TabsContent value="audio">
-          <ComingSoon
-            title="Áudio dos materiais"
-            description="A conversão dos seus materiais em áudio será implementada em uma próxima etapa."
-          />
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Abra um material e clique em "Ouvir página" para escutar a leitura em voz alta, com
+              velocidade de 1x a 2x.
+            </p>
+            <MaterialsPanel subjectId={subject.id} />
+          </div>
         </TabsContent>
 
         <TabsContent value="tutor">
