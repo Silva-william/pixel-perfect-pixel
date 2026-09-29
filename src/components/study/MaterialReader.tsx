@@ -55,8 +55,7 @@ export function MaterialReader({
     setPage(p);
   };
 
-  const onAudioProgress = (pos: ListenPosition) => {
-    const next = { page, ...pos };
+  const onAudioProgress = (next: ListenPosition & { page: number }) => {
     setAudio(next);
     void saveAudioPosition(material.id, next);
   };

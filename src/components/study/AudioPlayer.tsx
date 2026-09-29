@@ -79,7 +79,7 @@ export function AudioPlayer({
   /** Where to resume on this page. */
   resume?: ListenPosition | null;
   autoPlay?: boolean;
-  onProgress?: (pos: ListenPosition) => void;
+  onProgress?: (pos: ListenPosition & { page: number }) => void;
   onStart?: () => void;
   /** Called when the whole page has been read. */
   onFinished?: () => void;
@@ -97,6 +97,7 @@ export function AudioPlayer({
   const lastSaveRef = useRef(0);
   const stateRef = useRef<"idle" | "loading" | "playing" | "paused">("idle");
   const chunkRef = useRef(0);
+  const pageRef = useRef(page);
   const cbRef = useRef({ onProgress, onStart, onFinished });
   cbRef.current = { onProgress, onStart, onFinished };
 
@@ -117,7 +118,7 @@ export function AudioPlayer({
 
   const report = () => {
     const a = audioRef.current;
-    cbRef.current.onProgress?.({ chunk: chunkRef.current, seconds: a ? Math.floor(a.currentTime) : 0 });
+    cbRef.current.onProgress?.({ page: pageRef.current, chunk: chunkRef.current, seconds: a ? Math.floor(a.currentTime) : 0 });
   };
 
   const fileName = async (i: number) => `p${page}-c${i}-${await shortHash(`${VOICE}|${chunks.current[i]}`)}`;
@@ -125,6 +126,7 @@ export function AudioPlayer({
   // New page/text: load cached audio list, set resume point, stop previous playback.
   useEffect(() => {
     chunks.current = chunkText(text);
+    pageRef.current = page;
     const start = resume && resume.chunk < chunks.current.length ? resume : null;
     setChunk(start?.chunk ?? 0);
     seekRef.current = start?.seconds ?? 0;

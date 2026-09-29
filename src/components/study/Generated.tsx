@@ -6,6 +6,15 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
 import { generateStudyContent } from "@/lib/ai.functions";
+import { logActivity } from "@/lib/activity";
+import { useStudies } from "@/lib/studies-store";
+
+const DONE: Record<Kind, string> = {
+  summary: "Gerou o resumo",
+  cards: "Gerou os cards",
+  flashcards: "Gerou flashcards",
+  quiz: "Gerou o quiz",
+};
 
 type Kind = "summary" | "cards" | "flashcards" | "quiz";
 
@@ -45,6 +54,7 @@ export function Generated<T>({
   children: (data: T, regenerate: ReactNode) => ReactNode;
 }) {
   const generate = useServerFn(generateStudyContent);
+  const { getSubject } = useStudies();
   const [data, setData] = useState<T | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
 
@@ -60,6 +70,11 @@ export function Generated<T>({
       if (!res.ok) toast.error(res.error);
       else {
         toast.success("Conteúdo gerado a partir dos seus materiais.");
+        void logActivity({
+          kind: "generated",
+          text: `${DONE[kind]} de ${getSubject(subjectId)?.name ?? "uma matéria"}`,
+          subjectId,
+        });
         reload();
       }
     } catch {
