@@ -146,7 +146,7 @@ function SubjectPage() {
         </TabsContent>
 
         <TabsContent value="flashcards">
-          {cardsForFlash.length ? (
+          {cardsForFlash[0] ? (
             <FlashcardView card={cardsForFlash[0]} />
           ) : (
             <EmptyState
