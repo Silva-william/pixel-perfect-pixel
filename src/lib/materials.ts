@@ -40,7 +40,7 @@ export async function uploadMaterial(subjectId: string, file: File) {
 
   const { error: upErr } = await supabase.storage
     .from("materials")
-    .upload(path, file, { contentType: file.type || undefined });
+    .upload(path, file, file.type ? { contentType: file.type } : {});
   if (upErr) throw upErr;
 
   const { error } = await supabase.from("materials").insert({
