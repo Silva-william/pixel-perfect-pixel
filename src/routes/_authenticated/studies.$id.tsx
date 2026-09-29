@@ -3,7 +3,6 @@ import { ArrowLeft, Brain, Clock, FileCheck, Target } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatCard } from "@/components/StatCard";
-import { ComingSoon } from "@/components/ComingSoon";
 import { EmptyState } from "@/components/EmptyState";
 import { FlashcardView } from "@/components/FlashcardView";
 import { QuizRunner } from "@/components/QuizRunner";
