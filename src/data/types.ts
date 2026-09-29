@@ -13,7 +13,10 @@ export type Subject = {
   completedMaterials: number;
   reviewedFlashcards: number;
   quizAverage: number;
-  continueFrom: { chapter: string; title: string; progress: number };
+  continueFrom: { chapter: string; title: string; progress: number; materialId?: string };
+  flashcardsCount?: number;
+  /** ISO date of the last time a material of this subject was opened/listened. */
+  lastStudiedAt?: string | null;
 };
 
 export type MaterialType = "PDF" | "EPUB" | "DOCX" | "TXT";
