@@ -1,19 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Material, MaterialType } from "@/data/types";
+import { relativeTime as relative } from "@/lib/time";
 
 /** Materials repository: file in Storage (materials/<userId>/...), metadata + extracted text in the database. */
 
-function relative(iso: string | null) {
-  if (!iso) return "nunca";
-  const min = (Date.now() - new Date(iso).getTime()) / 60000;
-  if (min < 1) return "agora";
-  if (min < 60) return `há ${Math.round(min)} min`;
-  if (min < 1440) return `há ${Math.round(min / 60)} h`;
-  return `há ${Math.round(min / 1440)} dias`;
-}
-
 const COLS =
-  "id, subject_id, name, type, pages, progress, status, current_page, storage_path, last_viewed_at, created_at";
+  "id, subject_id, name, type, pages, progress, status, current_page, storage_path, last_viewed_at, created_at, audio_page, audio_chunk, audio_seconds";
 
 type Row = {
   id: string;
@@ -27,13 +19,20 @@ type Row = {
   storage_path: string | null;
   last_viewed_at: string | null;
   created_at: string;
+  audio_page: number | null;
+  audio_chunk: number;
+  audio_seconds: number;
 };
 
 export type MaterialDetail = Material & {
   status: string;
   currentPage: number;
   storagePath: string | null;
+  /** Where the user stopped listening (null = never listened). */
+  audio: AudioPosition | null;
 };
+
+export type AudioPosition = { page: number; chunk: number; seconds: number };
 
 function toMaterial(r: Row): MaterialDetail {
   return {
@@ -47,6 +46,7 @@ function toMaterial(r: Row): MaterialDetail {
     status: r.status,
     currentPage: r.current_page,
     storagePath: r.storage_path,
+    audio: r.audio_page ? { page: r.audio_page, chunk: r.audio_chunk, seconds: r.audio_seconds } : null,
   };
 }
 
@@ -81,6 +81,21 @@ export async function saveReadingPosition(id: string, page: number, total: numbe
   await supabase
     .from("materials")
     .update({ current_page: page, progress, last_viewed_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+/** Saves the listening position so audio resumes where it stopped. `null` clears it (finished). */
+export async function saveAudioPosition(id: string, pos: AudioPosition | null) {
+  const now = new Date().toISOString();
+  await supabase
+    .from("materials")
+    .update({
+      audio_page: pos?.page ?? null,
+      audio_chunk: pos?.chunk ?? 0,
+      audio_seconds: pos?.seconds ?? 0,
+      audio_updated_at: now,
+      last_viewed_at: now,
+    })
     .eq("id", id);
 }
 
