@@ -136,6 +136,10 @@ export type Database = {
       }
       materials: {
         Row: {
+          audio_chunk: number
+          audio_page: number | null
+          audio_seconds: number
+          audio_updated_at: string | null
           created_at: string
           current_page: number
           id: string
@@ -151,6 +155,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          audio_chunk?: number
+          audio_page?: number | null
+          audio_seconds?: number
+          audio_updated_at?: string | null
           created_at?: string
           current_page?: number
           id?: string
@@ -166,6 +174,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          audio_chunk?: number
+          audio_page?: number | null
+          audio_seconds?: number
+          audio_updated_at?: string | null
           created_at?: string
           current_page?: number
           id?: string
@@ -213,6 +225,51 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      study_activity: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          material_id: string | null
+          subject_id: string | null
+          text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          material_id?: string | null
+          subject_id?: string | null
+          text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          material_id?: string | null
+          subject_id?: string | null
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_activity_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_activity_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subjects: {
         Row: {
