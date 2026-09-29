@@ -82,10 +82,10 @@ export function QuizRunner({ quiz, onExit }: { quiz: Quiz; onExit: () => void })
         <ProgressBar value={((index + 1) / total) * 100} />
       </div>
 
-      <h3 className="font-serif text-xl leading-snug">{question.prompt}</h3>
+      <h3 className="font-serif text-xl leading-snug">{question?.prompt}</h3>
 
       <div className="space-y-2">
-        {question.options.map((option, i) => (
+        {(question?.options ?? []).map((option, i) => (
           <button
             key={option}
             type="button"
