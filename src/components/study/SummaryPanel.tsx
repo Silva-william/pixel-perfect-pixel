@@ -1,9 +1,7 @@
-import { Sparkles } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import type { ReactNode } from "react";
 import type { SummaryDoc } from "@/data/types";
 
-export function SummaryPanel({ summary }: { summary: SummaryDoc }) {
+export function SummaryPanel({ summary, action }: { summary: SummaryDoc; action?: ReactNode }) {
   return (
     <div className="space-y-6">
       <div className="card-soft space-y-3 p-6 sm:p-8">
@@ -27,13 +25,7 @@ export function SummaryPanel({ summary }: { summary: SummaryDoc }) {
         </ol>
       </div>
 
-      <Button
-        variant="outline"
-        onClick={() => toast("Essa funcionalidade será conectada à IA em uma próxima etapa.")}
-      >
-        <Sparkles className="size-4" />
-        Gerar novo resumo
-      </Button>
+      {action}
     </div>
   );
 }

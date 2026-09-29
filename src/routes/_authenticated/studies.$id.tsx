@@ -12,7 +12,9 @@ import { MaterialsPanel } from "@/components/study/MaterialsPanel";
 import { SummaryPanel } from "@/components/study/SummaryPanel";
 import { Button } from "@/components/ui/button";
 import { useStudies } from "@/lib/studies-store";
-import { getFlashcards, getKnowledgeCards, getMaterials, getQuizzes, getSummary } from "@/data/mock";
+import { Generated } from "@/components/study/Generated";
+import { TutorThreads } from "@/components/study/TutorThreads";
+import type { Flashcard, KnowledgeCard, Quiz, SummaryDoc } from "@/data/types";
 import { subjectSoft } from "@/lib/subject-colors";
 import { useState } from "react";
 
@@ -53,11 +55,6 @@ function SubjectPage() {
     throw notFound();
   }
 
-  const materials = getMaterials(subject.id);
-  const cards = getKnowledgeCards(subject.id);
-  const cardsForFlash = getFlashcards(subject.id);
-  const quiz = getQuizzes(subject.id)[0];
-  const summary = getSummary(subject.id);
 
   return (
     <>
@@ -139,47 +136,65 @@ function SubjectPage() {
         </TabsContent>
 
         <TabsContent value="summary">
-          <SummaryPanel summary={summary} />
+          <Generated<{ text: string; keyPoints: string[] }> subjectId={subject.id} kind="summary">
+            {(d, regen) => (
+              <SummaryPanel
+                summary={{ subjectId: subject.id, text: d.text, keyPoints: d.keyPoints ?? [] } as SummaryDoc}
+                action={regen}
+              />
+            )}
+          </Generated>
         </TabsContent>
 
         <TabsContent value="cards">
-          <KnowledgeCards cards={cards} />
+          <Generated<{ cards: Omit<KnowledgeCard, "id" | "subjectId">[] }> subjectId={subject.id} kind="cards">
+            {(d, regen) => (
+              <div className="space-y-4">
+                <KnowledgeCards
+                  cards={(d.cards ?? []).map((c, i) => ({ ...c, id: String(i), subjectId: subject.id }))}
+                />
+                {regen}
+              </div>
+            )}
+          </Generated>
         </TabsContent>
 
         <TabsContent value="flashcards">
-          {cardsForFlash[0] ? (
-            <FlashcardView card={cardsForFlash[0]} />
-          ) : (
-            <EmptyState
-              title="Nenhum flashcard nesta matéria"
-              description="Os flashcards serão gerados a partir dos materiais em uma próxima etapa."
-            />
-          )}
+          <Generated<Flashcard[]> subjectId={subject.id} kind="flashcards">
+            {(list, regen) => <FlashcardDeck cards={list} action={regen} />}
+          </Generated>
         </TabsContent>
 
         <TabsContent value="quiz">
-          {quiz ? (
-            quizOpen ? (
-              <QuizRunner quiz={quiz} onExit={() => setQuizOpen(false)} />
-            ) : (
-              <div className="card-soft flex flex-col gap-4 p-6">
-                <div>
-                  <h3 className="text-base font-semibold">{quiz.title}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {quiz.questionsCount} questões · Média: {quiz.average}%
-                  </p>
+          <Generated<{ title: string; questions: Omit<Quiz["questions"][number], "id">[] }>
+            subjectId={subject.id}
+            kind="quiz"
+          >
+            {(d, regen) => {
+              const quiz: Quiz = {
+                id: subject.id,
+                subjectId: subject.id,
+                title: d.title || `Quiz de ${subject.name}`,
+                questionsCount: d.questions?.length ?? 0,
+                average: 0,
+                questions: (d.questions ?? []).map((q, i) => ({ ...q, id: String(i) })),
+              };
+              return quizOpen ? (
+                <QuizRunner quiz={quiz} onExit={() => setQuizOpen(false)} />
+              ) : (
+                <div className="card-soft flex flex-col gap-4 p-6">
+                  <div>
+                    <h3 className="text-base font-semibold">{quiz.title}</h3>
+                    <p className="text-xs text-muted-foreground">{quiz.questionsCount} questões</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => setQuizOpen(true)}>Começar quiz</Button>
+                    {regen}
+                  </div>
                 </div>
-                <Button className="self-start" onClick={() => setQuizOpen(true)}>
-                  Começar quiz
-                </Button>
-              </div>
-            )
-          ) : (
-            <EmptyState
-              title="Nenhum quiz disponível"
-              description="Os quizzes serão gerados a partir dos materiais em uma próxima etapa."
-            />
-          )}
+              );
+            }}
+          </Generated>
         </TabsContent>
 
         <TabsContent value="audio">
@@ -190,12 +205,24 @@ function SubjectPage() {
         </TabsContent>
 
         <TabsContent value="tutor">
-          <ComingSoon
-            title="Tutor IA"
-            description="Conversar com uma IA baseada exclusivamente nos seus materiais será implementado em uma próxima etapa."
-          />
+          <TutorThreads subjectId={subject.id} />
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+function FlashcardDeck({ cards, action }: { cards: Flashcard[]; action: React.ReactNode }) {
+  const [index, setIndex] = useState(0);
+  const card = cards[index % cards.length];
+  if (!card) return null;
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        Card {(index % cards.length) + 1} de {cards.length}
+      </p>
+      <FlashcardView key={card.id} card={card} onRate={() => setIndex((i) => i + 1)} />
+      {action}
+    </div>
   );
 }
