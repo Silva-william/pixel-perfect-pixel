@@ -30,7 +30,7 @@ export function MaterialsPanel({ subjectId }: { subjectId: string }) {
       {materials.length ? (
         <div className="space-y-3">
           {materials.map((material) => (
-            <MaterialCard key={material.id} material={material} />
+            <MaterialCard key={material.id} material={material} onDeleted={load} />
           ))}
         </div>
       ) : (

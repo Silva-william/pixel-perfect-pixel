@@ -168,3 +168,58 @@ export async function uploadMaterial(subjectId: string, file: File) {
   }
   await processMaterial(row.id, type, await file.arrayBuffer());
 }
+
+/** Deletes a material with its original file, extracted pages and saved audio. */
+export async function deleteMaterial(m: { id: string; storagePath?: string | null }) {
+  const { data: u } = await supabase.auth.getUser();
+  const userId = u.user?.id;
+  if (!userId) throw new Error("Você precisa estar conectado.");
+  const folder = `${userId}/audio/${m.id}`;
+  const { data: audio } = await supabase.storage.from("materials").list(folder, { limit: 1000 });
+  const paths = (audio ?? []).map((f) => `${folder}/${f.name}`);
+  if (m.storagePath) paths.push(m.storagePath);
+  if (paths.length) await supabase.storage.from("materials").remove(paths);
+  await supabase.from("study_activity").update({ material_id: null }).eq("material_id", m.id);
+  await supabase.from("material_pages").delete().eq("material_id", m.id);
+  const { error } = await supabase.from("materials").delete().eq("id", m.id);
+  if (error) throw error;
+}
+
+/** Replaces the text of one page. */
+export async function updatePage(materialId: string, page: number, content: string) {
+  const { error } = await supabase
+    .from("material_pages")
+    .update({ content })
+    .eq("material_id", materialId)
+    .eq("page_number", page);
+  if (error) throw error;
+}
+
+function escapeRe(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Removes a snippet (e.g. a repeated footer) from every page. Whitespace is
+ * matched loosely and a trailing page number after the snippet is removed too.
+ * Returns how many pages changed.
+ */
+export async function removeSnippetEverywhere(materialId: string, snippet: string) {
+  const words = snippet.replace(/\s+\d+\s*$/, "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return 0;
+  const re = new RegExp(words.map(escapeRe).join("\\s+") + "(?:\\s+\\d+)?", "g");
+  const { data, error } = await supabase
+    .from("material_pages")
+    .select("page_number, content")
+    .eq("material_id", materialId);
+  if (error) throw error;
+  let changed = 0;
+  for (const row of data ?? []) {
+    const next = row.content.replace(re, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    if (next !== row.content) {
+      await updatePage(materialId, row.page_number, next);
+      changed++;
+    }
+  }
+  return changed;
+}
