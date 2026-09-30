@@ -10,7 +10,7 @@ const VOICE = "Kore";
 const BUCKET = "materials";
 
 /** Splits text into chunks at sentence boundaries (max ~1500 chars). */
-function chunkText(text: string, max = 1500): string[] {
+export function chunkText(text: string, max = 1500): string[] {
   const sentences = text.replace(/\s+/g, " ").match(/[^.!?]+[.!?]*\s*/g) ?? [];
   const out: string[] = [];
   let cur = "";
@@ -72,6 +72,7 @@ export function AudioPlayer({
   onProgress,
   onStart,
   onFinished,
+  onReading,
 }: {
   text: string;
   materialId: string;
@@ -83,6 +84,8 @@ export function AudioPlayer({
   onStart?: () => void;
   /** Called when the whole page has been read. */
   onFinished?: () => void;
+  /** Current reading position (chunk + fraction of it) for highlighting; null when stopped. */
+  onReading?: (pos: { chunk: number; ratio: number } | null) => void;
 }) {
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -98,8 +101,8 @@ export function AudioPlayer({
   const stateRef = useRef<"idle" | "loading" | "playing" | "paused">("idle");
   const chunkRef = useRef(0);
   const pageRef = useRef(page);
-  const cbRef = useRef({ onProgress, onStart, onFinished });
-  cbRef.current = { onProgress, onStart, onFinished };
+  const cbRef = useRef({ onProgress, onStart, onFinished, onReading });
+  cbRef.current = { onProgress, onStart, onFinished, onReading };
 
   const [state, _setState] = useState<"idle" | "loading" | "playing" | "paused">("idle");
   const [chunk, _setChunk] = useState(0);
@@ -110,6 +113,7 @@ export function AudioPlayer({
   const setState = (s: typeof state) => {
     stateRef.current = s;
     _setState(s);
+    if (s === "idle") cbRef.current.onReading?.(null);
   };
   const setChunk = (i: number) => {
     chunkRef.current = i;
@@ -160,6 +164,7 @@ export function AudioPlayer({
       audioRef.current?.pause();
       stateRef.current = "idle";
       _setState("idle");
+      cbRef.current.onReading?.(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, userId]);
@@ -220,6 +225,7 @@ export function AudioPlayer({
         if (seek > 0 && seek < a.duration) a.currentTime = seek;
       };
       a.ontimeupdate = () => {
+        if (a.duration > 0) cbRef.current.onReading?.({ chunk: i, ratio: a.currentTime / a.duration });
         if (Date.now() - lastSaveRef.current > 5000) {
           lastSaveRef.current = Date.now();
           report();
