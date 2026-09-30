@@ -174,9 +174,11 @@ export async function deleteMaterial(m: { id: string; storagePath?: string | nul
   const { data: u } = await supabase.auth.getUser();
   const userId = u.user?.id;
   if (!userId) throw new Error("Você precisa estar conectado.");
-  const folder = `${userId}/audio/${m.id}`;
-  const { data: audio } = await supabase.storage.from("materials").list(folder, { limit: 1000 });
-  const paths = (audio ?? []).map((f) => `${folder}/${f.name}`);
+  const paths: string[] = [];
+  for (const folder of [`${userId}/audio/${m.id}`, `${userId}/images/${m.id}`]) {
+    const { data: files } = await supabase.storage.from("materials").list(folder, { limit: 1000 });
+    for (const f of files ?? []) paths.push(`${folder}/${f.name}`);
+  }
   if (m.storagePath) paths.push(m.storagePath);
   if (paths.length) await supabase.storage.from("materials").remove(paths);
   await supabase.from("study_activity").update({ material_id: null }).eq("material_id", m.id);
