@@ -372,6 +372,20 @@ export function MaterialReader({
           <Button variant="outline" size="sm" onClick={() => setEditing(text ?? "")} disabled={text === null || editing !== null}>
             <Pencil className="size-4" /> Editar texto
           </Button>
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={busy || text === null}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />} Inserir imagem
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void insertImage(f);
+            }}
+          />
           <Button variant="outline" size="sm" onClick={() => setSnippetOpen(true)}>
             <Eraser className="size-4" /> Remover trecho
           </Button>
@@ -397,7 +411,7 @@ export function MaterialReader({
 
       {text && editing === null ? (
         <AudioPlayer
-          text={text}
+          text={stripMedia(text)}
           materialId={material.id}
           page={page}
           resume={audio && audio.page === page ? audio : null}
@@ -413,11 +427,21 @@ export function MaterialReader({
         {editing !== null ? (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Apague o que não quer que seja lido. O texto salvo passa a ser usado na leitura, no áudio e pela IA.
+              Apague o que não quer que seja lido. Para colocar um infográfico no meio do texto, deixe o cursor no
+              lugar e clique em "Inserir imagem" (ou cole a imagem com Ctrl+V). A linha ![](...) vira a imagem; o
+              texto entre os colchetes vira a legenda.
             </p>
             <Textarea
+              ref={editRef}
               value={editing}
               onChange={(e) => setEditing(e.target.value)}
+              onPaste={(e) => {
+                const f = e.clipboardData.files?.[0];
+                if (f && f.type.startsWith("image/")) {
+                  e.preventDefault();
+                  void insertImage(f);
+                }
+              }}
               className="min-h-[420px] font-serif text-base leading-relaxed"
             />
             <div className="flex justify-end gap-2">
@@ -434,9 +458,9 @@ export function MaterialReader({
           <p className="text-sm text-muted-foreground">Carregando página...</p>
         ) : text.trim() ? (
           reading ? (
-            <HighlightedText text={text} reading={reading} />
+            <HighlightedText text={stripMedia(text)} reading={reading} />
           ) : (
-            <div className="mx-auto max-w-prose whitespace-pre-line font-serif text-lg leading-relaxed">{text}</div>
+            <PageContent text={text} />
           )
         ) : (
           <p className="text-sm text-muted-foreground">
