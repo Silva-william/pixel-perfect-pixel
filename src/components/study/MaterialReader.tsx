@@ -1,19 +1,96 @@
-import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ExternalLink, Headphones, Loader2, RefreshCw } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Eraser,
+  ExternalLink,
+  Headphones,
+  Loader2,
+  Pencil,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ProgressBar } from "@/components/ProgressBar";
-import { AudioPlayer, type ListenPosition } from "@/components/study/AudioPlayer";
+import { AudioPlayer, chunkText, type ListenPosition } from "@/components/study/AudioPlayer";
 import { logActivity } from "@/lib/activity";
 import {
+  deleteMaterial,
   getOriginalUrl,
   getPage,
+  removeSnippetEverywhere,
   reprocessMaterial,
   saveAudioPosition,
   saveReadingPosition,
+  updatePage,
   type AudioPosition,
   type MaterialDetail,
 } from "@/lib/materials";
+
+type Reading = { chunk: number; ratio: number } | null;
+
+/** Text shown while listening: split like the audio, with the sentence being read highlighted. */
+function HighlightedText({ text, reading }: { text: string; reading: NonNullable<Reading> }) {
+  const chunks = useMemo(() => chunkText(text).map((c) => c.match(/[^.!?]+[.!?]*\s*/g) ?? [c]), [text]);
+  const activeRef = useRef<HTMLSpanElement>(null);
+  const sentences = chunks[reading.chunk] ?? [];
+  const len = sentences.reduce((n, s) => n + s.length, 0);
+  let target = reading.ratio * len;
+  let active = sentences.length - 1;
+  for (let i = 0; i < sentences.length; i++) {
+    target -= sentences[i]!.length;
+    if (target <= 0) {
+      active = i;
+      break;
+    }
+  }
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [reading.chunk, active]);
+
+  return (
+    <div className="mx-auto max-w-prose font-serif text-lg leading-relaxed">
+      {chunks.map((ss, ci) => (
+        <span key={ci} className={ci === reading.chunk ? "" : "text-muted-foreground"}>
+          {ss.map((s, si) => {
+            const on = ci === reading.chunk && si === active;
+            return (
+              <span
+                key={si}
+                ref={on ? activeRef : undefined}
+                className={on ? "rounded bg-primary/20 text-foreground transition-colors" : undefined}
+              >
+                {s}
+              </span>
+            );
+          })}{" "}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export function MaterialReader({
   material,
@@ -22,18 +99,26 @@ export function MaterialReader({
   material: MaterialDetail;
   onChanged: () => void;
 }) {
+  const navigate = useNavigate();
   const total = material.pages;
   const [page, setPage] = useState(Math.min(Math.max(material.currentPage, 1), Math.max(total, 1)));
   const [text, setText] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [audio, setAudio] = useState<AudioPosition | null>(material.audio);
   const [autoPlay, setAutoPlay] = useState(false);
+  const [reading, setReading] = useState<Reading>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [snippetOpen, setSnippetOpen] = useState(false);
+  const [snippet, setSnippet] = useState("");
+  const [confirm, setConfirm] = useState<"delete" | "reprocess" | null>(null);
   const listenedPages = useRef(new Set<number>());
   const ready = material.status === "ready" || material.status === "no_text";
 
   useEffect(() => {
     if (!ready) return;
     setText(null);
+    setEditing(null);
+    setReading(null);
     getPage(material.id, page).then(setText);
     void saveReadingPosition(material.id, page, total);
   }, [material.id, page, total, ready]);
@@ -71,7 +156,6 @@ export function MaterialReader({
     });
   };
 
-  // Page read to the end: continue listening on the next page.
   const onAudioFinished = () => {
     if (page < total) {
       const next = { page: page + 1, chunk: 0, seconds: 0 };
@@ -111,18 +195,106 @@ export function MaterialReader({
     }
   };
 
-  const toolbar = (
-    <div className="flex flex-wrap items-center gap-2">
-      {material.storagePath ? (
-        <Button variant="outline" size="sm" onClick={openOriginal}>
-          <ExternalLink className="size-4" /> Abrir original
-        </Button>
-      ) : null}
-      <Button variant="ghost" size="sm" onClick={reprocess} disabled={busy}>
-        {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-        Processar novamente
-      </Button>
-    </div>
+  const remove = async () => {
+    setBusy(true);
+    try {
+      await deleteMaterial(material);
+      toast.success("Material excluído.");
+      navigate({ to: "/studies/$id", params: { id: material.subjectId } });
+    } catch (e) {
+      toast.error("Não foi possível excluir.", { description: e instanceof Error ? e.message : undefined });
+      setBusy(false);
+    }
+  };
+
+  const saveEdit = async () => {
+    if (editing === null) return;
+    setBusy(true);
+    try {
+      await updatePage(material.id, page, editing);
+      setText(editing);
+      setEditing(null);
+      toast.success("Texto da página salvo.");
+    } catch {
+      toast.error("Não foi possível salvar o texto.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeSnippet = async () => {
+    setBusy(true);
+    try {
+      const n = await removeSnippetEverywhere(material.id, snippet);
+      setSnippetOpen(false);
+      setSnippet("");
+      toast.success(n ? `Trecho removido de ${n} página(s).` : "O trecho não foi encontrado.");
+      setText(await getPage(material.id, page));
+    } catch {
+      toast.error("Não foi possível remover o trecho.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const dialogs = (
+    <>
+      <AlertDialog open={confirm !== null} onOpenChange={(o) => !o && setConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirm === "delete" ? "Excluir este material?" : "Processar o arquivo novamente?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirm === "delete"
+                ? "O arquivo, o texto e os áudios salvos serão apagados. Isso não pode ser desfeito."
+                : "O texto será lido de novo do arquivo original e as edições que você fez serão perdidas."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void (confirm === "delete" ? remove() : reprocess())}
+              className={confirm === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : undefined}
+            >
+              {confirm === "delete" ? "Excluir" : "Processar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={snippetOpen} onOpenChange={setSnippetOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remover trecho em todas as páginas</DialogTitle>
+            <DialogDescription>
+              Cole um texto que se repete, como o rodapé ou cabeçalho da página. Ele será apagado de todas as
+              páginas, junto com o número da página que vier logo depois.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={snippet}
+            onChange={(e) => setSnippet(e.target.value)}
+            placeholder="Ex.: UNIDADE 1 – FUNDAMENTOS DA SEGURANÇA DA INFORMAÇÃO"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSnippetOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={removeSnippet} disabled={busy || !snippet.trim()}>
+              {busy ? <Loader2 className="size-4 animate-spin" /> : <Eraser className="size-4" />}
+              Remover
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+
+  const deleteButton = (
+    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setConfirm("delete")} disabled={busy}>
+      <Trash2 className="size-4" /> Excluir
+    </Button>
   );
 
   if (!ready) {
@@ -135,10 +307,14 @@ export function MaterialReader({
     return (
       <section className="card-soft space-y-4 p-8 text-center">
         <p className="text-sm text-muted-foreground">{msg}</p>
-        <Button onClick={reprocess} disabled={busy}>
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-          {busy ? "Processando..." : "Processar agora"}
-        </Button>
+        <div className="flex justify-center gap-2">
+          <Button onClick={reprocess} disabled={busy}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+            {busy ? "Processando..." : "Processar agora"}
+          </Button>
+          {deleteButton}
+        </div>
+        {dialogs}
       </section>
     );
   }
@@ -147,7 +323,24 @@ export function MaterialReader({
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Leitura</h2>
-        {toolbar}
+        <div className="flex flex-wrap items-center gap-2">
+          {material.storagePath ? (
+            <Button variant="outline" size="sm" onClick={openOriginal}>
+              <ExternalLink className="size-4" /> Abrir original
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={() => setEditing(text ?? "")} disabled={text === null || editing !== null}>
+            <Pencil className="size-4" /> Editar texto
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setSnippetOpen(true)}>
+            <Eraser className="size-4" /> Remover trecho
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setConfirm("reprocess")} disabled={busy}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+            Processar novamente
+          </Button>
+          {deleteButton}
+        </div>
       </div>
 
       {audio && audio.page !== page ? (
@@ -162,7 +355,7 @@ export function MaterialReader({
         </div>
       ) : null}
 
-      {text ? (
+      {text && editing === null ? (
         <AudioPlayer
           text={text}
           materialId={material.id}
@@ -172,20 +365,43 @@ export function MaterialReader({
           onProgress={onAudioProgress}
           onStart={onAudioStart}
           onFinished={onAudioFinished}
+          onReading={setReading}
         />
       ) : null}
 
       <article className="card-soft min-h-[420px] p-6 sm:p-10">
-        {text === null ? (
+        {editing !== null ? (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Apague o que não quer que seja lido. O texto salvo passa a ser usado na leitura, no áudio e pela IA.
+            </p>
+            <Textarea
+              value={editing}
+              onChange={(e) => setEditing(e.target.value)}
+              className="min-h-[420px] font-serif text-base leading-relaxed"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditing(null)} disabled={busy}>
+                Cancelar
+              </Button>
+              <Button onClick={saveEdit} disabled={busy}>
+                {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+                Salvar
+              </Button>
+            </div>
+          </div>
+        ) : text === null ? (
           <p className="text-sm text-muted-foreground">Carregando página...</p>
         ) : text.trim() ? (
-          <div className="mx-auto max-w-prose whitespace-pre-line font-serif text-lg leading-relaxed">
-            {text}
-          </div>
+          reading ? (
+            <HighlightedText text={text} reading={reading} />
+          ) : (
+            <div className="mx-auto max-w-prose whitespace-pre-line font-serif text-lg leading-relaxed">{text}</div>
+          )
         ) : (
           <p className="text-sm text-muted-foreground">
-            Esta página não tem texto selecionável (pode ser uma imagem ou digitalização). Use "Abrir
-            original" para vê-la.
+            Esta página não tem texto selecionável (pode ser uma imagem ou digitalização). Use "Abrir original"
+            para vê-la.
           </p>
         )}
       </article>
@@ -204,6 +420,7 @@ export function MaterialReader({
           Próxima <ChevronRight className="size-4" />
         </Button>
       </div>
+      {dialogs}
     </section>
   );
 }
