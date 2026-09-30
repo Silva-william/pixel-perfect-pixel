@@ -48,7 +48,7 @@ async function extractPdf(data: ArrayBuffer): Promise<string[]> {
     let text = "";
     lines.forEach((l, idx) => {
       const str = l.parts.sort((a, b) => a.x - b.x).map((p) => p.str).join(" ");
-      if (idx > 0) text += lines[idx - 1].y - l.y > l.h * 2.2 ? "\n\n" : "\n";
+      if (idx > 0) text += lines[idx - 1]!.y - l.y > l.h * 2.2 ? "\n\n" : "\n";
       text += str;
     });
     pages.push(text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim());
