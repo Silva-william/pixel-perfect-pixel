@@ -116,6 +116,8 @@ export function MaterialReader({
   const [snippet, setSnippet] = useState("");
   const [confirm, setConfirm] = useState<"delete" | "reprocess" | null>(null);
   const listenedPages = useRef(new Set<number>());
+  const fileRef = useRef<HTMLInputElement>(null);
+  const editRef = useRef<HTMLTextAreaElement>(null);
   const ready = material.status === "ready" || material.status === "no_text";
 
   useEffect(() => {
