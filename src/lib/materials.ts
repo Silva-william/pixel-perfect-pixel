@@ -195,6 +195,27 @@ export async function updatePage(materialId: string, page: number, content: stri
   if (error) throw error;
 }
 
+/** Uploads an image (infographic, table, diagram) used inside a page's text. Returns its storage path. */
+export async function uploadPageImage(materialId: string, file: File) {
+  const { data: u } = await supabase.auth.getUser();
+  const userId = u.user?.id;
+  if (!userId) throw new Error("Você precisa estar conectado.");
+  const safe = file.name.replace(/[^\w.\-]+/g, "_") || "imagem.png";
+  const path = `${userId}/images/${materialId}/${crypto.randomUUID()}-${safe}`;
+  const { error } = await supabase.storage
+    .from("materials")
+    .upload(path, file, file.type ? { contentType: file.type } : {});
+  if (error) throw error;
+  return path;
+}
+
+/** Signed URL to display a page image. */
+export async function getMediaUrl(path: string) {
+  const { data, error } = await supabase.storage.from("materials").createSignedUrl(path, 3600);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
 function escapeRe(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
