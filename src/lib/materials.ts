@@ -174,9 +174,11 @@ export async function deleteMaterial(m: { id: string; storagePath?: string | nul
   const { data: u } = await supabase.auth.getUser();
   const userId = u.user?.id;
   if (!userId) throw new Error("Você precisa estar conectado.");
-  const folder = `${userId}/audio/${m.id}`;
-  const { data: audio } = await supabase.storage.from("materials").list(folder, { limit: 1000 });
-  const paths = (audio ?? []).map((f) => `${folder}/${f.name}`);
+  const paths: string[] = [];
+  for (const folder of [`${userId}/audio/${m.id}`, `${userId}/images/${m.id}`]) {
+    const { data: files } = await supabase.storage.from("materials").list(folder, { limit: 1000 });
+    for (const f of files ?? []) paths.push(`${folder}/${f.name}`);
+  }
   if (m.storagePath) paths.push(m.storagePath);
   if (paths.length) await supabase.storage.from("materials").remove(paths);
   await supabase.from("study_activity").update({ material_id: null }).eq("material_id", m.id);
@@ -193,6 +195,27 @@ export async function updatePage(materialId: string, page: number, content: stri
     .eq("material_id", materialId)
     .eq("page_number", page);
   if (error) throw error;
+}
+
+/** Uploads an image (infographic, table, diagram) used inside a page's text. Returns its storage path. */
+export async function uploadPageImage(materialId: string, file: File) {
+  const { data: u } = await supabase.auth.getUser();
+  const userId = u.user?.id;
+  if (!userId) throw new Error("Você precisa estar conectado.");
+  const safe = file.name.replace(/[^\w.\-]+/g, "_") || "imagem.png";
+  const path = `${userId}/images/${materialId}/${crypto.randomUUID()}-${safe}`;
+  const { error } = await supabase.storage
+    .from("materials")
+    .upload(path, file, file.type ? { contentType: file.type } : {});
+  if (error) throw error;
+  return path;
+}
+
+/** Signed URL to display a page image. */
+export async function getMediaUrl(path: string) {
+  const { data, error } = await supabase.storage.from("materials").createSignedUrl(path, 3600);
+  if (error) throw error;
+  return data.signedUrl;
 }
 
 function escapeRe(s: string) {

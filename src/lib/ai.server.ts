@@ -3,6 +3,7 @@ import { streamText, type ModelMessage } from "ai";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { createLovableAiGatewayRunIdFetch } from "./ai-run-id.server";
+import { stripMedia } from "./page-media";
 
 export const AI_MODEL = "openai/gpt-6-astra";
 const GATEWAY = "https://ai.gateway.lovable.dev/v1";
@@ -64,7 +65,7 @@ export async function loadSubjectContext(supabase: SupabaseClient<Database>, sub
     text += `\n\n### Material: ${m.name}\n`;
     for (const p of pages ?? []) {
       if (text.length >= MAX_CONTEXT) break;
-      text += `\n[página ${p.page_number}]\n${p.content}`;
+      text += `\n[página ${p.page_number}]\n${stripMedia(p.content)}`;
     }
   }
   return { subject, text: text.slice(0, MAX_CONTEXT).trim() };

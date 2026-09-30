@@ -6,6 +6,7 @@ import {
   Eraser,
   ExternalLink,
   Headphones,
+  ImagePlus,
   Loader2,
   Pencil,
   RefreshCw,
@@ -35,7 +36,9 @@ import {
 } from "@/components/ui/dialog";
 import { ProgressBar } from "@/components/ProgressBar";
 import { AudioPlayer, chunkText, type ListenPosition } from "@/components/study/AudioPlayer";
+import { PageContent } from "@/components/study/PageContent";
 import { logActivity } from "@/lib/activity";
+import { mediaMarker, stripMedia } from "@/lib/page-media";
 import {
   deleteMaterial,
   getOriginalUrl,
@@ -45,6 +48,7 @@ import {
   saveAudioPosition,
   saveReadingPosition,
   updatePage,
+  uploadPageImage,
   type AudioPosition,
   type MaterialDetail,
 } from "@/lib/materials";
@@ -112,6 +116,8 @@ export function MaterialReader({
   const [snippet, setSnippet] = useState("");
   const [confirm, setConfirm] = useState<"delete" | "reprocess" | null>(null);
   const listenedPages = useRef(new Set<number>());
+  const fileRef = useRef<HTMLInputElement>(null);
+  const editRef = useRef<HTMLTextAreaElement>(null);
   const ready = material.status === "ready" || material.status === "no_text";
 
   useEffect(() => {
@@ -217,6 +223,40 @@ export function MaterialReader({
       toast.success("Texto da página salvo.");
     } catch {
       toast.error("Não foi possível salvar o texto.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Uploads an image and places it in the page text (at the cursor while editing). */
+  const insertImage = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Escolha um arquivo de imagem (PNG, JPG ou WebP).");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("A imagem precisa ter no máximo 10 MB.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const path = await uploadPageImage(material.id, file);
+      const marker = mediaMarker("", path);
+      if (editing !== null) {
+        const el = editRef.current;
+        const at = el ? el.selectionStart : editing.length;
+        setEditing(`${editing.slice(0, at).replace(/\s*$/, "")}\n\n${marker}\n\n${editing.slice(at).replace(/^\s*/, "")}`);
+        toast.success("Imagem inserida. Salve para confirmar.");
+      } else {
+        const next = `${(text ?? "").trim()}\n\n${marker}\n`;
+        await updatePage(material.id, page, next);
+        setText(next);
+        toast.success("Imagem adicionada ao fim da página.");
+      }
+    } catch (e) {
+      toast.error("Não foi possível enviar a imagem.", {
+        description: e instanceof Error ? e.message : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -332,6 +372,20 @@ export function MaterialReader({
           <Button variant="outline" size="sm" onClick={() => setEditing(text ?? "")} disabled={text === null || editing !== null}>
             <Pencil className="size-4" /> Editar texto
           </Button>
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={busy || text === null}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus className="size-4" />} Inserir imagem
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void insertImage(f);
+            }}
+          />
           <Button variant="outline" size="sm" onClick={() => setSnippetOpen(true)}>
             <Eraser className="size-4" /> Remover trecho
           </Button>
@@ -357,7 +411,7 @@ export function MaterialReader({
 
       {text && editing === null ? (
         <AudioPlayer
-          text={text}
+          text={stripMedia(text)}
           materialId={material.id}
           page={page}
           resume={audio && audio.page === page ? audio : null}
@@ -373,11 +427,21 @@ export function MaterialReader({
         {editing !== null ? (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              Apague o que não quer que seja lido. O texto salvo passa a ser usado na leitura, no áudio e pela IA.
+              Apague o que não quer que seja lido. Para colocar um infográfico no meio do texto, deixe o cursor no
+              lugar e clique em "Inserir imagem" (ou cole a imagem com Ctrl+V). A linha ![](...) vira a imagem; o
+              texto entre os colchetes vira a legenda.
             </p>
             <Textarea
+              ref={editRef}
               value={editing}
               onChange={(e) => setEditing(e.target.value)}
+              onPaste={(e) => {
+                const f = e.clipboardData.files?.[0];
+                if (f && f.type.startsWith("image/")) {
+                  e.preventDefault();
+                  void insertImage(f);
+                }
+              }}
               className="min-h-[420px] font-serif text-base leading-relaxed"
             />
             <div className="flex justify-end gap-2">
@@ -394,9 +458,9 @@ export function MaterialReader({
           <p className="text-sm text-muted-foreground">Carregando página...</p>
         ) : text.trim() ? (
           reading ? (
-            <HighlightedText text={text} reading={reading} />
+            <HighlightedText text={stripMedia(text)} reading={reading} />
           ) : (
-            <div className="mx-auto max-w-prose whitespace-pre-line font-serif text-lg leading-relaxed">{text}</div>
+            <PageContent text={text} />
           )
         ) : (
           <p className="text-sm text-muted-foreground">
