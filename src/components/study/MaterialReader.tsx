@@ -6,6 +6,7 @@ import {
   Eraser,
   ExternalLink,
   Headphones,
+  ImagePlus,
   Loader2,
   Pencil,
   RefreshCw,
@@ -35,7 +36,9 @@ import {
 } from "@/components/ui/dialog";
 import { ProgressBar } from "@/components/ProgressBar";
 import { AudioPlayer, chunkText, type ListenPosition } from "@/components/study/AudioPlayer";
+import { PageContent } from "@/components/study/PageContent";
 import { logActivity } from "@/lib/activity";
+import { mediaMarker, stripMedia } from "@/lib/page-media";
 import {
   deleteMaterial,
   getOriginalUrl,
@@ -45,6 +48,7 @@ import {
   saveAudioPosition,
   saveReadingPosition,
   updatePage,
+  uploadPageImage,
   type AudioPosition,
   type MaterialDetail,
 } from "@/lib/materials";
