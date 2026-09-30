@@ -228,6 +228,40 @@ export function MaterialReader({
     }
   };
 
+  /** Uploads an image and places it in the page text (at the cursor while editing). */
+  const insertImage = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Escolha um arquivo de imagem (PNG, JPG ou WebP).");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("A imagem precisa ter no máximo 10 MB.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const path = await uploadPageImage(material.id, file);
+      const marker = mediaMarker("", path);
+      if (editing !== null) {
+        const el = editRef.current;
+        const at = el ? el.selectionStart : editing.length;
+        setEditing(`${editing.slice(0, at).replace(/\s*$/, "")}\n\n${marker}\n\n${editing.slice(at).replace(/^\s*/, "")}`);
+        toast.success("Imagem inserida. Salve para confirmar.");
+      } else {
+        const next = `${(text ?? "").trim()}\n\n${marker}\n`;
+        await updatePage(material.id, page, next);
+        setText(next);
+        toast.success("Imagem adicionada ao fim da página.");
+      }
+    } catch (e) {
+      toast.error("Não foi possível enviar a imagem.", {
+        description: e instanceof Error ? e.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const removeSnippet = async () => {
     setBusy(true);
     try {
