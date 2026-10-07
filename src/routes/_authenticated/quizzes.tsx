@@ -9,6 +9,8 @@ import { quizzes } from "@/data/mock";
 export const Route = createFileRoute("/_authenticated/quizzes")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Quizzes — StudyAI" },
       { name: "description", content: "Teste seus conhecimentos com quizzes por matéria." },
       { property: "og:title", content: "Quizzes — StudyAI" },

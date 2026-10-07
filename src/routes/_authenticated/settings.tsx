@@ -24,6 +24,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Configurações — StudyAI" },
       { name: "description", content: "Ajuste seu perfil, aparência e preferências de estudo." },
       { property: "og:title", content: "Configurações — StudyAI" },

@@ -99,7 +99,15 @@ export async function saveAudioPosition(id: string, pos: AudioPosition | null) {
     .eq("id", id);
 }
 
-export async function getOriginalUrl(path: string) {
+export async function getOriginalUrl(path: string, type?: string) {
+  if (type === "LINK") {
+    const { data, error } = await supabase.storage.from("materials").download(path);
+    if (error) throw error;
+    const { source } = JSON.parse(await data.text()) as { source: string };
+    const url = new URL(source);
+    if (url.protocol !== "https:") throw new Error("Link original inválido.");
+    return url.href;
+  }
   const { data, error } = await supabase.storage.from("materials").createSignedUrl(path, 3600);
   if (error) throw error;
   return data.signedUrl;

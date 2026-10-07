@@ -17,6 +17,8 @@ import { useStudies } from "@/lib/studies-store";
 export const Route = createFileRoute("/_authenticated/materials/$id")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Material — StudyAI" },
       { name: "description", content: "Visualize o material, seu progresso e o resumo gerado." },
       { property: "og:title", content: "Material — StudyAI" },

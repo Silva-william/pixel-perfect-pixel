@@ -19,7 +19,7 @@ export type Subject = {
   lastStudiedAt?: string | null;
 };
 
-export type MaterialType = "PDF" | "EPUB" | "DOCX" | "TXT";
+export type MaterialType = "PDF" | "EPUB" | "DOCX" | "TXT" | "LINK";
 
 export type Material = {
   id: string;

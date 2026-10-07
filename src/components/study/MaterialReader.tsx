@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { importLinkMaterial } from "@/lib/web-import.functions";
 import {
   ChevronLeft,
   ChevronRight,
@@ -104,6 +106,7 @@ export function MaterialReader({
   onChanged: () => void;
 }) {
   const navigate = useNavigate();
+  const importLink = useServerFn(importLinkMaterial);
   const total = material.pages;
   const [page, setPage] = useState(Math.min(Math.max(material.currentPage, 1), Math.max(total, 1)));
   const [text, setText] = useState<string | null>(null);
@@ -179,7 +182,7 @@ export function MaterialReader({
   const openOriginal = async () => {
     if (!material.storagePath) return;
     try {
-      window.open(await getOriginalUrl(material.storagePath), "_blank", "noopener");
+      window.open(await getOriginalUrl(material.storagePath, material.type), "_blank", "noopener");
     } catch {
       toast.error("Não foi possível abrir o arquivo.");
     }
@@ -188,7 +191,13 @@ export function MaterialReader({
   const reprocess = async () => {
     setBusy(true);
     try {
-      await reprocessMaterial(material);
+      if (material.type === "LINK") {
+        const result = await importLink({ data: { materialId: material.id } });
+        if (result.warnings.length) toast.warning(result.warnings.join(" "));
+        setPage(1);
+      } else {
+        await reprocessMaterial(material);
+      }
       toast.success("Material processado.");
       onChanged();
     } catch (e) {

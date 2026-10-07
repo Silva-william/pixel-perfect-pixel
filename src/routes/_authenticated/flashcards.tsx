@@ -5,6 +5,8 @@ import { ReviewSession } from "@/components/study/ReviewSession";
 export const Route = createFileRoute("/_authenticated/flashcards")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Flashcards — StudyAI" },
       { name: "description", content: "Revise os conceitos que você já estudou com flashcards." },
       { property: "og:title", content: "Flashcards — StudyAI" },
