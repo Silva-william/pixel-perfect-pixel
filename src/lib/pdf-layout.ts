@@ -103,6 +103,32 @@ function dropRepeatedItems(pages: PdfItem[][]): PdfItem[][] {
 }
 
 /**
+ * Removes the bibliography section ("REFERÊNCIAS" / "REFERÊNCIAS BIBLIOGRÁFICAS"):
+ * the heading and everything below it on the page. References usually run to the
+ * end of the document, so trailing pages that are only bibliography entries are
+ * dropped too (handled in layoutPages).
+ */
+const REFERENCES_HEADING = /^\s*refer[eê]ncias(\s+bibliogr[aá]ficas)?\s*$/i;
+
+export function hasReferencesHeading(items: PdfItem[]): boolean {
+  return items.some((i) => REFERENCES_HEADING.test(i.str) && i.h >= 12);
+}
+
+export function dropReferences(items: PdfItem[]): PdfItem[] {
+  const heading = items.find((i) => REFERENCES_HEADING.test(i.str) && i.h >= 12);
+  if (!heading) return items;
+  return items.filter((i) => i.y > heading.y + 1);
+}
+
+/** True when a page looks like a bibliography continuation (mostly reference entries). */
+export function isBibliographyPage(text: string): boolean {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return false;
+  const entry = lines.filter((l) => /[.;]\s*(19|20)\d{2}[.,)]/.test(l) || /\b(dispon[ií]vel em|acesso em|in:|ed\.|v\.\s*\d)/i.test(l));
+  return entry.length >= Math.max(2, Math.ceil(lines.length * 0.35));
+}
+
+/**
  * Removes practice exercises ("A importância da...", options a–e, "Gabarito na página N"):
  * the block between the large exercise title and the "Gabarito" line, drawn in a
  * larger font than the body text.
@@ -133,7 +159,15 @@ export function dropExercises(items: PdfItem[]): PdfItem[] {
 }
 
 export function layoutPages(pages: PdfItem[][]): string[] {
-  const all = dropRepeatedItems(pages.map(dropExercises)).map(toLines);
+  // Pages from the bibliography onward: drop continuation pages that are only references.
+  const refStart = pages.findIndex(hasReferencesHeading);
+  const all = dropRepeatedItems(pages.map((items) => dropReferences(dropExercises(items)))).map(toLines);
+  if (refStart >= 0) {
+    for (let p = refStart + 1; p < all.length; p++) {
+      const t = render(all[p]!);
+      if (isBibliographyPage(t)) all[p] = [];
+    }
+  }
 
   // Footers/headers: lines repeated (ignoring numbers) on many pages.
   if (all.length >= 3) {
@@ -190,7 +224,14 @@ export function layoutPages(pages: PdfItem[][]): string[] {
     all[0] = body;
     const out = all.map(render);
     if (title) out[0] = [title, out[0]].filter(Boolean).join("\n\n");
-    return out;
+    return trimBibliographyTail(out);
   }
-  return all.map(render);
+  return trimBibliographyTail(all.map(render));
+}
+
+/** Drops trailing pages that are only bibliography entries (references spanning pages). */
+function trimBibliographyTail(out: string[]): string[] {
+  let end = out.length;
+  while (end > 1 && out[end - 1]!.trim() && isBibliographyPage(out[end - 1]!)) end--;
+  return out.slice(0, end);
 }
