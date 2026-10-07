@@ -153,7 +153,7 @@ export function dropExercises(items: PdfItem[]): PdfItem[] {
 }
 
 export function layoutPages(pages: PdfItem[][]): string[] {
-  const all = dropRepeatedItems(pages.map(dropExercises)).map(toLines);
+  const all = dropRepeatedItems(pages.map((items) => dropReferences(dropExercises(items)))).map(toLines);
 
   // Footers/headers: lines repeated (ignoring numbers) on many pages.
   if (all.length >= 3) {
