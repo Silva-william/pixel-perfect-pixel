@@ -2,7 +2,7 @@
 export type PdfBox = { x0: number; y0: number; x1: number; y1: number };
 type Operators = { fnArray: number[]; argsArray: unknown[] };
 type Matrix = number[];
-type Ops = Record<string, number>;
+type Ops = { save?: number; restore?: number; transform?: number; beginMarkedContent?: number; beginMarkedContentProps?: number; endMarkedContent?: number; clip?: number; eoClip?: number; constructPath?: number; fill?: number; eoFill?: number };
 const identity = () => [1, 0, 0, 1, 0, 0];
 function multiply(a: Matrix, b: Matrix): Matrix {
   return [
