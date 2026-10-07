@@ -46,11 +46,31 @@ function isCoverNoise(l: Line) {
   return false;
 }
 
+/** Line text with bold parts wrapped in **markers** (markdown-style). */
+function boldText(l: Line) {
+  let out = "";
+  let open = false;
+  for (const p of l.parts) {
+    const s = p.str.trim();
+    if (!s) continue;
+    if (p.bold && !open) {
+      out += "**";
+      open = true;
+    } else if (!p.bold && open) {
+      out += "**";
+      open = false;
+    }
+    out += (out && !out.endsWith("**") ? " " : "") + s;
+  }
+  if (open) out += "**";
+  return out;
+}
+
 function render(lines: Line[]) {
   let text = "";
   lines.forEach((l, i) => {
     if (i > 0) text += lines[i - 1]!.y - l.y > l.h * 2.2 ? "\n\n" : "\n";
-    text += l.text;
+    text += boldText(l);
   });
   return text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }

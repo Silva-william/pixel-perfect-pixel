@@ -29,9 +29,10 @@ export function parsePage(text: string): PageBlock[] {
   return blocks;
 }
 
-/** Page text without the image markers — used for audio and for the AI. */
+/** Page text without the image markers and bold markers — used for audio and for the AI. */
 export function stripMedia(text: string) {
   return text.replace(MEDIA_RE, (_m, caption: string) => (caption ? `\n${caption}\n` : "\n"))
+    .replace(/\*\*/g, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
