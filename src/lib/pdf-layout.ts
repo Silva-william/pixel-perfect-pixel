@@ -210,7 +210,14 @@ export function layoutPages(pages: PdfItem[][]): string[] {
     all[0] = body;
     const out = all.map(render);
     if (title) out[0] = [title, out[0]].filter(Boolean).join("\n\n");
-    return out;
+    return trimBibliographyTail(out);
   }
-  return all.map(render);
+  return trimBibliographyTail(all.map(render));
+}
+
+/** Drops trailing pages that are only bibliography entries (references spanning pages). */
+function trimBibliographyTail(out: string[]): string[] {
+  let end = out.length;
+  while (end > 1 && out[end - 1]!.trim() && isBibliographyPage(out[end - 1]!)) end--;
+  return out.slice(0, end);
 }
