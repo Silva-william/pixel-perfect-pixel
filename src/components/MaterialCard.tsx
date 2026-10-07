@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { FileText, FileType, BookOpen, FileCode, Trash2 } from "lucide-react";
+import { FileText, FileType, BookOpen, FileCode, Trash2, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { ProgressBar } from "@/components/ProgressBar";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ const icons = {
   DOCX: FileType,
   EPUB: BookOpen,
   TXT: FileCode,
+  LINK: Link2,
 } as const;
 
 export function MaterialCard({

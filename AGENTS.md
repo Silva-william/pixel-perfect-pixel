@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - PDF extraction uses marked-content clipping bounds and native rectangular table geometry before page layout, so hidden text layers cannot contaminate readable tables.
+- Public web materials are imported through authenticated server functions with URL, DNS and redirect validation; store original source snapshots and copied images in private material storage and use the existing editable page format so reading, audio and study history remain shared.
