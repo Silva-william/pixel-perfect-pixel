@@ -39,7 +39,7 @@ import {
 import { ProgressBar } from "@/components/ProgressBar";
 import { AudioPlayer, chunkText, type ListenPosition } from "@/components/study/AudioPlayer";
 import { PageContent } from "@/components/study/PageContent";
-import { logActivity } from "@/lib/activity";
+import { addStudyMinutes, logActivity } from "@/lib/activity";
 import { mediaMarker, stripMedia } from "@/lib/page-media";
 import {
   deleteMaterial,
@@ -131,6 +131,15 @@ export function MaterialReader({
     getPage(material.id, page).then(setText);
     void saveReadingPosition(material.id, page, total);
   }, [material.id, page, total, ready]);
+
+  // Study time: one minute counted for every active minute on this page (tab visible).
+  useEffect(() => {
+    if (!ready) return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") void addStudyMinutes(material.subjectId, 1);
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [material.subjectId, ready]);
 
   // Study history: one entry each time the material is opened.
   useEffect(() => {

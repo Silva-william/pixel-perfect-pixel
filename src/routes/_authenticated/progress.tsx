@@ -1,3 +1,6 @@
+import { useEffect } from "react";
+import { useStudies } from "@/lib/studies-store";
+import { formatStudyTime } from "@/lib/activity";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Bar,
@@ -66,6 +69,10 @@ const tooltipStyle = {
 };
 
 function ProgressPage() {
+  const { subjects, refresh } = useStudies();
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
   return (
     <>
       <PageHeader title="Meu progresso" subtitle="Acompanhe sua evolução ao longo do tempo." />
@@ -73,7 +80,7 @@ function ProgressPage() {
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           icon={<Clock className="size-4" />}
-          value={`${Math.round(progressStats.totalMinutes / 60)}h`}
+          value={formatStudyTime(subjects.reduce((n, s) => n + s.studiedMinutes, 0))}
           label="Tempo total estudado"
         />
         <StatCard
