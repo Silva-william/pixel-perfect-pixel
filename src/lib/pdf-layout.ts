@@ -23,7 +23,8 @@ function toLines(raw: PdfItem[]): Line[] {
   const lines: Line[] = [];
   for (const it of items) {
     const line = lines[lines.length - 1];
-    if (line && Math.abs(line.y - it.y) < Math.max(it.h, line.h) * 0.5) line.parts.push(it);
+    const similar = line && Math.max(it.h, line.h) / Math.max(1, Math.min(it.h, line.h)) < 1.3;
+    if (line && similar && Math.abs(line.y - it.y) < Math.max(it.h, line.h) * 0.5) line.parts.push(it);
     else lines.push({ y: it.y, h: it.h, text: "", parts: [it] });
   }
   for (const l of lines) {
@@ -78,15 +79,27 @@ export function layoutPages(pages: PdfItem[][]): string[] {
     if (k) all[p] = cur.slice(k);
   }
 
-  // Cover page: keep the title (largest text) and the real content, drop credits and summary.
+  // Cover page: keep only the title, drop credits, banner and summary.
   if (all.length > 1) {
     const first = all[0]!;
+    const hs = all.flat().map((l) => Math.round(l.h));
+    const freq = new Map<number, number>();
+    for (const h of hs) freq.set(h, (freq.get(h) ?? 0) + 1);
+    const bodyH = [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 10;
     const maxH = Math.max(...first.map((l) => l.h));
-    const titleLines = first.filter((l) => l.h >= maxH * 0.65);
-    const titleTexts = new Set<string>();
-    const kept: Line[] = [];
+    const cover = first.filter((l) => l.h > bodyH * 1.6);
+    const seen = new Set<string>();
+    const title = cover
+      .filter((l) => l.h >= maxH * 0.6)
+      .sort((a, b) => (b.h >= maxH - 1 ? 1 : 0) - (a.h >= maxH - 1 ? 1 : 0) || b.y - a.y)
+      .map((l) => l.text)
+      .filter((t) => (seen.has(t.toLowerCase()) ? false : (seen.add(t.toLowerCase()), true)))
+      .join(" ")
+      .replace(/(\S)\s+(DA|DE|DO)\s/g, "$1 $2 ");
+    const body: Line[] = [];
     let skipNext = false;
     for (const l of first) {
+      if (l.h > bodyH * 1.6) continue;
       if (/^(autor|revisor)\s*:?$/i.test(l.text)) {
         skipNext = true;
         continue;
@@ -95,28 +108,12 @@ export function layoutPages(pages: PdfItem[][]): string[] {
         skipNext = false;
         continue;
       }
-      if (isCoverNoise(l)) continue;
-      if (titleLines.includes(l)) {
-        const key = l.text.toLowerCase();
-        if (titleTexts.has(key)) continue;
-        titleTexts.add(key);
-      }
-      kept.push(l);
+      if (!isCoverNoise(l)) body.push(l);
     }
-    // Title sizes repeat at slightly different sizes; keep only the biggest occurrence group.
-    const big = kept.filter((l) => l.h >= maxH * 0.65);
-    const title = big.map((l) => l.text).join(" ");
-    const body = kept.filter((l) => l.h < maxH * 0.65 && !isTitleFragment(l.text, title));
     all[0] = body;
     const out = all.map(render);
-    out[0] = [title, out[0]].filter(Boolean).join("\n\n");
+    if (title) out[0] = [title, out[0]].filter(Boolean).join("\n\n");
     return out;
   }
   return all.map(render);
-}
-
-/** Smaller copies of title words (e.g. the title repeated in a banner). */
-function isTitleFragment(text: string, title: string) {
-  const t = text.toUpperCase();
-  return t.length > 6 && t === text && title.toUpperCase().includes(t);
 }
