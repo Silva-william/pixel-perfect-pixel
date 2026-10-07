@@ -6,6 +6,7 @@ export type WebDocument = { title: string; pages: string[]; images: string[] };
 export function extractWebContent(html: string, source: string): WebDocument {
   const { document } = parseHTML(html);
   const title = document.querySelector("title")?.textContent?.trim().replace(/\s+/g, " ") || "Material por link";
+  const unitTitle = document.querySelector(".intro-header .paragraph-bigger")?.textContent?.trim().replace(/\s+/g, " ");
   const root = document.querySelector("main, article, [role=main]") ?? document.body;
   for (const label of Array.from(root.querySelectorAll(".titulo-quiz, .text-block-14"))) {
     if (/teste seus conhecimentos|atividade n[aã]o pontuada/i.test(label.textContent ?? "")) {
@@ -46,8 +47,12 @@ export function extractWebContent(html: string, source: string): WebDocument {
     if (el.tagName === "IMG") return resolveImage(el.getAttribute("data-src") || el.getAttribute("src") || "");
     if (el.tagName === "BR") return "\n";
     if (el.tagName === "STRONG" || el.tagName === "B") return `**${children().trim()}**`;
-    if (el.tagName === "TABLE") {
-      const rows = Array.from(el.querySelectorAll("tr")).map(row => Array.from(row.querySelectorAll("th,td")).map(cell => (cell.textContent ?? "").replace(/\s+/g, " ").replace(/\|/g, "/").trim()));
+    if (el.tagName === "TABLE" || el.classList.contains("div-block-55")) {
+      const cells = Array.from(el.children).filter(cell => cell.classList.contains("coluna-div"));
+      const cleanCell = (cell: Element) => (cell.textContent ?? "").replace(/\s+/g, " ").replace(/\|/g, "/").trim();
+      const rows = el.tagName === "TABLE"
+        ? Array.from(el.querySelectorAll("tr")).map(row => Array.from(row.querySelectorAll("th,td")).map(cleanCell))
+        : Array.from({ length: Math.ceil(cells.length / 2) }, (_, i) => cells.slice(i * 2, i * 2 + 2).map(cleanCell));
       const width = Math.max(0, ...rows.map(row => row.length));
       return "\n\n" + rows.map((row, i) => `| ${Array.from({ length: width }, (_, n) => row[n] ?? "").join(" | ")} |${i === 0 ? `\n| ${Array(width).fill("---").join(" | ")} |` : ""}`).join("\n") + "\n\n";
     }
@@ -59,7 +64,7 @@ export function extractWebContent(html: string, source: string): WebDocument {
     if (/^(P|DIV|SECTION|ARTICLE|BLOCKQUOTE|FIGURE|UL|OL)$/.test(el.tagName)) return `\n\n${value.trim()}\n\n`;
     return value;
   };
-  const text = inline(root).replace(/\u0000/g, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  const text = `${unitTitle ? `**${unitTitle}**\n\n` : ""}${inline(root)}`.replace(/\u0000/g, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
   const pages: string[] = [];
   let page = "";
   for (const block of text.split(/\n\n/)) {
@@ -75,6 +80,15 @@ export function validateWebUrl(value: string): URL {
   const host = url.hostname.toLowerCase();
   if (url.protocol !== "https:" || url.username || url.password || url.port || !host.includes(".") || /[\[\]:]/.test(host) || /^\d+\.\d+\.\d+\.\d+$/.test(host) || /\.(localhost|local|internal|test|invalid)$/.test(host)) {
     throw new Error("Use um link HTTPS de uma página pública.");
+  }
+  return url;
+}
+
+/** Explicitly trusted content hosts prevent DNS rebinding of arbitrary user domains. */
+export function validateImportHost(value: string): URL {
+  const url = validateWebUrl(value);
+  if (url.hostname !== "fmu-content.s3.us-east-1.amazonaws.com") {
+    throw new Error("Neste momento, a importação aceita links de conteúdo da FMU (fmu-content.s3.us-east-1.amazonaws.com).");
   }
   return url;
 }

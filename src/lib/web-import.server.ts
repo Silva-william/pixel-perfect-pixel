@@ -1,11 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { extractWebContent, validateWebUrl } from "./web-content";
+import { extractWebContent, validateImportHost } from "./web-content";
 import { mediaMarker } from "./page-media";
 
 /** Validate DNS and every redirect before fetching user-supplied public URLs. */
 export async function fetchPublicResource(value: string, limit: number): Promise<{ bytes: Uint8Array; url: string; type: string }> {
-  let url = validateWebUrl(value);
+  let url = validateImportHost(value);
   for (let i = 0; i < 5; i++) {
     const dns = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(url.hostname)}&type=A`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(15000) });
     if (!dns.ok) throw new Error("Não foi possível verificar o endereço da página.");
@@ -16,7 +16,7 @@ export async function fetchPublicResource(value: string, limit: number): Promise
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
       if (!location) throw new Error("O link redirecionou sem informar a página.");
-      url = validateWebUrl(new URL(location, url).href);
+      url = validateImportHost(new URL(location, url).href);
       continue;
     }
     if (!response.ok) throw new Error(`A página não pôde ser acessada (${response.status}). Verifique se o link é público e não exige login.`);

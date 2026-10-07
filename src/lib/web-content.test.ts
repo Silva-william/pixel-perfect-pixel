@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractWebContent, validateWebUrl } from "./web-content";
+import { extractWebContent, validateWebUrl, validateImportHost } from "./web-content";
 
 describe("material por link", () => {
   it("preserva texto, negrito e infográfico na ordem original", () => {
@@ -23,6 +23,14 @@ describe("material por link", () => {
   it("preserva tabelas com as células na mesma linha", () => {
     const result = extractWebContent('<html><body><table><tr><th>Fraude</th><th>Descrição</th></tr><tr><td>Delivery</td><td>Visor danificado</td></tr></table></body></html>', "https://faculdade.edu/aula");
     expect(result.pages[0]).toBe("| Fraude | Descrição |\n| --- | --- |\n| Delivery | Visor danificado |");
+  });
+  it("preserva o título da unidade e a tabela de níveis da FMU", () => {
+    const result = extractWebContent('<html><body><div class="intro-header"><div class="paragraph-bigger">UNIDADE 2 – Gestão da segurança da informação</div><div>Autor: Nome</div></div><div class="div-block-55"><div class="coluna-div">NÍVEL</div><div class="coluna-div">CARACTERÍSTICAS</div><div class="coluna-div">Operacional</div><div class="coluna-div">Situações cotidianas</div></div></body></html>', "https://faculdade.edu/aula");
+    expect(result.pages[0]).toBe("**UNIDADE 2 – Gestão da segurança da informação**\n\n| NÍVEL | CARACTERÍSTICAS |\n| --- | --- |\n| Operacional | Situações cotidianas |");
+  });
+  it("aceita a origem FMU fornecida e bloqueia domínios arbitrários", () => {
+    expect(validateImportHost("https://fmu-content.s3.us-east-1.amazonaws.com/FMU/EAD/Conteudo/CTI_AUDSIS_21/unidade_2/ebook/index.html").hostname).toBe("fmu-content.s3.us-east-1.amazonaws.com");
+    expect(() => validateImportHost("https://attacker.example/aula")).toThrow();
   });
   it.each(["http://faculdade.edu", "https://127.0.0.1/a", "https://[::1]/", "https://localhost/", "https://site.internal/", "https://user:pass@faculdade.edu/"])("bloqueia endereço não público: %s", value => {
     expect(() => validateWebUrl(value)).toThrow();
