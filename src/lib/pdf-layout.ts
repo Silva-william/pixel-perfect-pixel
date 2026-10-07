@@ -108,6 +108,9 @@ function dropRepeatedItems(pages: PdfItem[][]): PdfItem[][] {
  * larger font than the body text.
  */
 export function dropExercises(items: PdfItem[]): PdfItem[] {
+  // Answer key section ("Gabarito" heading): drop it and everything below on that page.
+  const key = items.find((i) => /^\s*gabarito\s*$/i.test(i.str) && i.h >= 14);
+  if (key) items = items.filter((i) => i.y > key.y + 1);
   const gab = items.filter((i) => /gabarito\s+na\s+p[áa]gina/i.test(i.str));
   if (!gab.length) return items;
   const hs = new Map<number, number>();
