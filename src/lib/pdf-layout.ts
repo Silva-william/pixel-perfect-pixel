@@ -4,7 +4,7 @@
  * overflows into the next page, and cover/table-of-contents noise on page 1.
  */
 
-export type PdfItem = { str: string; x: number; y: number; h: number };
+export type PdfItem = { str: string; x: number; y: number; h: number; bold?: boolean };
 type Line = { y: number; h: number; text: string; parts: PdfItem[] };
 
 const norm = (s: string) => s.replace(/\s+/g, " ").trim();
@@ -46,11 +46,34 @@ function isCoverNoise(l: Line) {
   return false;
 }
 
+/** Line text with bold parts wrapped in **markers** (markdown-style). */
+function boldText(l: Line) {
+  let out = "";
+  let open = false;
+  for (const p of l.parts) {
+    const s = p.str.trim();
+    if (!s) continue;
+    if (p.bold && !open) {
+      if (out) out += " ";
+      out += "**";
+      open = true;
+    } else if (!p.bold && open) {
+      out += "** ";
+      open = false;
+    } else if (out) {
+      out += " ";
+    }
+    out += s;
+  }
+  if (open) out += "**";
+  return out;
+}
+
 function render(lines: Line[]) {
   let text = "";
   lines.forEach((l, i) => {
     if (i > 0) text += lines[i - 1]!.y - l.y > l.h * 2.2 ? "\n\n" : "\n";
-    text += l.text;
+    text += boldText(l);
   });
   return text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }

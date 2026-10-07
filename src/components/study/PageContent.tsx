@@ -40,6 +40,18 @@ function PageImage({ path, caption, onZoom }: { path: string; caption: string; o
   );
 }
 
+/** Renders **bold** markers (kept from the PDF) as real bold text. */
+function InlineText({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith("**") && p.endsWith("**") ? <strong key={i}>{p.slice(2, -2)}</strong> : p,
+      )}
+    </>
+  );
+}
+
 /** Page text with the inserted images (infographics, tables) rendered in place. */
 export function PageContent({ text }: { text: string }) {
   const [zoom, setZoom] = useState<string | null>(null);
@@ -50,7 +62,7 @@ export function PageContent({ text }: { text: string }) {
       {blocks.map((b, i) =>
         b.kind === "text" ? (
           <p key={i} className="whitespace-pre-line">
-            {b.text}
+            <InlineText text={b.text} />
           </p>
         ) : (
           <PageImage key={i} path={b.path} caption={b.caption} onZoom={setZoom} />
