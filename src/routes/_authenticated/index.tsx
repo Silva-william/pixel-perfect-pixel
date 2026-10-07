@@ -15,6 +15,8 @@ import { dashboardStats, todayReview } from "@/data/mock";
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Início — StudyAI" },
       {
         name: "description",

@@ -24,6 +24,8 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 export const Route = createFileRoute("/_authenticated/tutor/$threadId")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Tutor IA — StudyAI" },
       { name: "description", content: "Converse com o Tutor IA sobre os seus materiais de estudo." },
       { property: "og:title", content: "Tutor IA — StudyAI" },

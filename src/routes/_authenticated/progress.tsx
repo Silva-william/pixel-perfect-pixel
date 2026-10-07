@@ -23,6 +23,8 @@ import {
 export const Route = createFileRoute("/_authenticated/progress")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Meu progresso — StudyAI" },
       { name: "description", content: "Tempo estudado, desempenho nos quizzes e materiais concluídos." },
       { property: "og:title", content: "Meu progresso — StudyAI" },

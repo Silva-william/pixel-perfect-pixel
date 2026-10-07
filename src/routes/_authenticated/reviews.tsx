@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/reviews")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { title: "Revisões — StudyAI" },
       { name: "description", content: "Acompanhe a revisão do dia e sua sequência de estudos." },
       { property: "og:title", content: "Revisões — StudyAI" },
