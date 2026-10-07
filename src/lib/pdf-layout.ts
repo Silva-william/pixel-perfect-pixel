@@ -108,8 +108,14 @@ function dropRepeatedItems(pages: PdfItem[][]): PdfItem[][] {
  * end of the document, so trailing pages that are only bibliography entries are
  * dropped too (handled in layoutPages).
  */
+const REFERENCES_HEADING = /^\s*refer[eê]ncias(\s+bibliogr[aá]ficas)?\s*$/i;
+
+export function hasReferencesHeading(items: PdfItem[]): boolean {
+  return items.some((i) => REFERENCES_HEADING.test(i.str) && i.h >= 12);
+}
+
 export function dropReferences(items: PdfItem[]): PdfItem[] {
-  const heading = items.find((i) => /^\s*refer[eê]ncias(\s+bibliogr[aá]ficas)?\s*$/i.test(i.str) && i.h >= 12);
+  const heading = items.find((i) => REFERENCES_HEADING.test(i.str) && i.h >= 12);
   if (!heading) return items;
   return items.filter((i) => i.y > heading.y + 1);
 }
