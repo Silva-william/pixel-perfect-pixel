@@ -7,7 +7,13 @@ export function extractWebContent(html: string, source: string): WebDocument {
   const { document } = parseHTML(html);
   const title = document.querySelector("title")?.textContent?.trim().replace(/\s+/g, " ") || "Material por link";
   const root = document.querySelector("main, article, [role=main]") ?? document.body;
-  root.querySelectorAll("script, style, noscript, nav, footer, form, iframe, .w-nav, .ref_bibliografica, .praticar-div, .intro-header, .linha, [hidden], [aria-hidden=true]").forEach(el => el.remove());
+  for (const label of Array.from(root.querySelectorAll(".titulo-quiz, .text-block-14"))) {
+    if (/teste seus conhecimentos|atividade n[aã]o pontuada/i.test(label.textContent ?? "")) {
+      const group = label.parentElement?.parentElement;
+      if (group && group.textContent && group.textContent.length < 500) group.remove();
+    }
+  }
+  root.querySelectorAll("script, style, noscript, nav, footer, form, iframe, .w-nav, .ref_bibliografica, .praticar-div, .intro-header, .linha, .call-action, .w-slider-arrow-left, .w-slider-arrow-right, .w-slider-nav, [hidden], [aria-hidden=true]").forEach(el => el.remove());
   // Drop exercise sections, but preserve the lesson which follows them.
   for (const heading of Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6"))) {
     const label = (heading.textContent ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -48,7 +54,7 @@ export function extractWebContent(html: string, source: string): WebDocument {
     let value = children();
     const background = el.getAttribute("style")?.match(/background(?:-image)?\s*:[^;]*url\(["']?([^"')]+)["']?\)/i)?.[1];
     if (background) value = resolveImage(background) + value;
-    if (/^H[1-6]$/.test(el.tagName)) return `\n\n**${value.trim()}**\n\n`;
+    if (/^H[1-6]$/.test(el.tagName)) return `\n\n**${value.trim().replace(/\*\*/g, "")}**\n\n`;
     if (el.tagName === "LI") return `\n• ${value.trim()}\n`;
     if (/^(P|DIV|SECTION|ARTICLE|BLOCKQUOTE|FIGURE|UL|OL)$/.test(el.tagName)) return `\n\n${value.trim()}\n\n`;
     return value;

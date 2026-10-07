@@ -16,6 +16,10 @@ describe("material por link", () => {
     const result = extractWebContent('<html><body><p>Aula</p><div class="ref_bibliografica">Autor, 2008</div><h2>Gabarito</h2><p>Resposta B</p></body></html>', "https://faculdade.edu/aula");
     expect(result.pages).toEqual(["Aula"]);
   });
+  it("ignora quizzes incorporados da faculdade mantendo o texto da seção", () => {
+    const result = extractWebContent('<html><body><section><p>Ameaças digitais</p><div><div><div class="titulo-quiz">Teste seus conhecimentos</div></div><iframe src="quiz/q1/index.html"></iframe><div><div class="text-block-14">Atividade não pontuada.</div></div></div><p>Próxima explicação</p></section></body></html>', "https://faculdade.edu/aula");
+    expect(result.pages).toEqual(["Ameaças digitais\n\nPróxima explicação"]);
+  });
   it("preserva tabelas com as células na mesma linha", () => {
     const result = extractWebContent('<html><body><table><tr><th>Fraude</th><th>Descrição</th></tr><tr><td>Delivery</td><td>Visor danificado</td></tr></table></body></html>', "https://faculdade.edu/aula");
     expect(result.pages[0]).toBe("| Fraude | Descrição |\n| --- | --- |\n| Delivery | Visor danificado |");

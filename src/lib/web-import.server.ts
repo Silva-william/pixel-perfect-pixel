@@ -44,7 +44,6 @@ export async function importWebMaterial(supabase: SupabaseClient<Database>, user
   let source = input.url;
   let id = input.materialId;
   let subjectId = input.subjectId;
-  let originalPath: string | null = null;
   if (id) {
     const { data, error } = await supabase.from("materials").select("subject_id, storage_path, type").eq("id", id).eq("user_id", userId).single();
     if (error || data?.type !== "LINK" || !data.storage_path) throw new Error("Material por link não encontrado.");
@@ -52,7 +51,6 @@ export async function importWebMaterial(supabase: SupabaseClient<Database>, user
     if (snapshot.error) throw snapshot.error;
     source = (JSON.parse(await snapshot.data.text()) as { source: string }).source;
     subjectId = data.subject_id;
-    originalPath = data.storage_path;
   }
   if (!source || !subjectId) throw new Error("Informe a matéria e o link.");
   const { data: subject } = await supabase.from("subjects").select("id").eq("id", subjectId).eq("user_id", userId).single();
