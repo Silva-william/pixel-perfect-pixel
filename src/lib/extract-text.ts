@@ -54,8 +54,8 @@ function imageBoxes(ol: { fnArray: number[]; argsArray: unknown[] }, OPS: { save
 }
 
 async function extractPdf(data: ArrayBuffer, saveImage?: SaveImage): Promise<string[]> {
-  const pdfjs = await import("pdfjs-dist");
-  const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const worker = await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs?url");
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
   const doc = await pdfjs.getDocument({ data }).promise;
   const { layoutPages } = await import("@/lib/pdf-layout");
