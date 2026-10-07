@@ -24,7 +24,7 @@ export const Route = createFileRoute("/_authenticated/reviews")({
 function ReviewsPage() {
   const navigate = useNavigate();
   const [dueCount, setDueCount] = useState<number | null>(null);
-  const [nextDue, setNextDue] = useState<Date | null>(null);
+  const [nextDue, setNextDue] = useState<string | null>(null);
 
   useEffect(() => {
     listDueCards().then((cards) => setDueCount(cards.length));
