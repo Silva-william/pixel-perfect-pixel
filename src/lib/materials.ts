@@ -113,7 +113,14 @@ export async function processMaterial(id: string, type: string, data: ArrayBuffe
   await supabase.from("materials").update({ status: "processing" }).eq("id", id);
   try {
     const { extractPages } = await import("@/lib/extract-text");
-    const pages = await extractPages(type, data);
+    const pages = await extractPages(type, data, async (blob, page, n) => {
+      const path = `${userId}/images/${id}/pdf-p${page}-${n}.png`;
+      const { error } = await supabase.storage
+        .from("materials")
+        .upload(path, blob, { contentType: "image/png", upsert: true });
+      if (error) throw error;
+      return path;
+    });
     await supabase.from("material_pages").delete().eq("material_id", id);
     const rows = pages.map((content, i) => ({
       user_id: userId,
