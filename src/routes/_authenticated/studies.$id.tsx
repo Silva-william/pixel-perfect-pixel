@@ -1,3 +1,4 @@
+import { formatStudyTime } from "@/lib/activity";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Brain, Clock, FileCheck, Target } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -106,7 +107,7 @@ function SubjectPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               icon={<Clock className="size-4" />}
-              value={`${Math.round(subject.studiedMinutes / 60)}h`}
+              value={formatStudyTime(subject.studiedMinutes)}
               label="Tempo estudado"
             />
             <StatCard
