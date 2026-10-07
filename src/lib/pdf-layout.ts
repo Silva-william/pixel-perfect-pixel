@@ -54,13 +54,16 @@ function boldText(l: Line) {
     const s = p.str.trim();
     if (!s) continue;
     if (p.bold && !open) {
+      if (out) out += " ";
       out += "**";
       open = true;
     } else if (!p.bold && open) {
-      out += "**";
+      out += "** ";
       open = false;
+    } else if (out) {
+      out += " ";
     }
-    out += (out && !out.endsWith("**") ? " " : "") + s;
+    out += s;
   }
   if (open) out += "**";
   return out;
