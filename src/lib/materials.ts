@@ -202,6 +202,15 @@ export async function deleteMaterial(m: { id: string; storagePath?: string | nul
   if (error) throw error;
 }
 
+/** Renames a material. */
+export async function renameMaterial(materialId: string, name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("O título não pode ficar vazio.");
+  const { error } = await supabase.from("materials").update({ name: trimmed }).eq("id", materialId);
+  if (error) throw error;
+  return trimmed;
+}
+
 /** Replaces the text of one page. */
 export async function updatePage(materialId: string, page: number, content: string) {
   const { error } = await supabase
