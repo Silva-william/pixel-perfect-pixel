@@ -27,7 +27,7 @@ export type SaveImage = (blob: Blob, page: number, index: number) => Promise<str
 type Box = { x0: number; y0: number; x1: number; y1: number };
 
 /** Bounding boxes (PDF units) of raster images drawn on a page, tracking the transform stack. */
-function imageBoxes(ol: { fnArray: number[]; argsArray: unknown[] }, OPS: Record<string, number>): Box[] {
+function imageBoxes(ol: { fnArray: number[]; argsArray: unknown[] }, OPS: { save: number; restore: number; transform: number; paintImageXObject: number; paintInlineImageXObject: number }): Box[] {
   let m = [1, 0, 0, 1, 0, 0];
   const stack: number[][] = [];
   const boxes: Box[] = [];
@@ -81,7 +81,7 @@ async function extractPdf(data: ArrayBuffer, saveImage?: SaveImage): Promise<str
       try {
         const [, , pw, ph] = page.view as number[];
         const ol = await page.getOperatorList();
-        const boxes = imageBoxes(ol, pdfjs.OPS as unknown as Record<string, number>).filter(
+        const boxes = imageBoxes(ol, pdfjs.OPS).filter(
           (b) => b.x1 - b.x0 > 80 && b.y1 - b.y0 > 60 && (b.x1 - b.x0) * (b.y1 - b.y0) > pw! * ph! * 0.03,
         );
         if (boxes.length) {
@@ -93,7 +93,8 @@ async function extractPdf(data: ArrayBuffer, saveImage?: SaveImage): Promise<str
           await page.render({ canvas, canvasContext: ctx, viewport } as Parameters<typeof page.render>[0]).promise;
           for (let n = 0; n < boxes.length; n++) {
             const b = boxes[n]!;
-            const [x0, y0, x1, y1] = viewport.convertToViewportRectangle([b.x0, b.y0, b.x1, b.y1]);
+            const [x0, y0] = viewport.convertToViewportPoint(b.x0, b.y0);
+            const [x1, y1] = viewport.convertToViewportPoint(b.x1, b.y1);
             const left = Math.max(0, Math.min(x0!, x1!));
             const top = Math.max(0, Math.min(y0!, y1!));
             const w = Math.min(canvas.width - left, Math.abs(x1! - x0!));
