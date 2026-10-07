@@ -125,7 +125,7 @@ export function isBibliographyPage(text: string): boolean {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   if (!lines.length) return false;
   const entry = lines.filter((l) => /[.;]\s*(19|20)\d{2}[.,)]/.test(l) || /\b(dispon[ií]vel em|acesso em|in:|ed\.|v\.\s*\d)/i.test(l));
-  return entry.length >= Math.max(2, Math.ceil(lines.length * 0.5));
+  return entry.length >= Math.max(2, Math.ceil(lines.length * 0.35));
 }
 
 /**
