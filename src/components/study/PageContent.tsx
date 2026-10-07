@@ -52,6 +52,28 @@ function InlineText({ text }: { text: string }) {
   );
 }
 
+function TextBlock({ text }: { text: string }) {
+  const lines = text.split("\n");
+  const sections: { table: boolean; lines: string[] }[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    const table = line.trim().startsWith("|") && line.trim().endsWith("|");
+    const previous = sections[sections.length - 1];
+    if (previous?.table === table) previous.lines.push(line);
+    else sections.push({ table, lines: [line] });
+  }
+  return <>{sections.map((section, index) => {
+    if (!section.table || !section.lines[1]?.match(/^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/)) {
+      return <p key={index} className="whitespace-pre-line"><InlineText text={section.lines.join("\n")} /></p>;
+    }
+    const rows = section.lines.filter((_, i) => i !== 1).map(line => line.trim().slice(1, -1).split("|").map(cell => cell.trim()));
+    return <div key={index} className="my-6 overflow-x-auto"><table className="w-full border-collapse font-sans text-sm leading-relaxed">
+      <thead className="bg-muted"><tr>{rows[0]?.map((cell, i) => <th key={i} className="border border-border p-3 text-left font-semibold"><InlineText text={cell} /></th>)}</tr></thead>
+      <tbody>{rows.slice(1).map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j} className="min-w-32 border border-border p-3 align-top"><InlineText text={cell} /></td>)}</tr>)}</tbody>
+    </table></div>;
+  })}</>;
+}
+
 /** Page text with the inserted images (infographics, tables) rendered in place. */
 export function PageContent({ text }: { text: string }) {
   const [zoom, setZoom] = useState<string | null>(null);
@@ -61,9 +83,7 @@ export function PageContent({ text }: { text: string }) {
     <div className="mx-auto max-w-prose font-serif text-lg leading-relaxed">
       {blocks.map((b, i) =>
         b.kind === "text" ? (
-          <p key={i} className="whitespace-pre-line">
-            <InlineText text={b.text} />
-          </p>
+          <TextBlock key={i} text={b.text} />
         ) : (
           <PageImage key={i} path={b.path} caption={b.caption} onZoom={setZoom} />
         ),

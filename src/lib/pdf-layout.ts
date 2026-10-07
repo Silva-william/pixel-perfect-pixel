@@ -4,7 +4,7 @@
  * overflows into the next page, and cover/table-of-contents noise on page 1.
  */
 
-export type PdfItem = { str: string; x: number; y: number; h: number; bold?: boolean };
+export type PdfItem = { str: string; x: number; y: number; h: number; w?: number; bold?: boolean };
 type Line = { y: number; h: number; text: string; parts: PdfItem[] };
 
 const norm = (s: string) => s.replace(/\s+/g, " ").trim();
@@ -16,7 +16,7 @@ function toLines(raw: PdfItem[]): Line[] {
   for (const it of raw) {
     if (!it.str.trim()) continue;
     // Drop "shadow" copies (same text drawn twice with a 1-2px offset).
-    if (items.some((o) => o.str === it.str && Math.abs(o.x - it.x) < 3 && Math.abs(o.y - it.y) < 3)) continue;
+    if (items.some((o) => o.str === it.str && Math.abs(o.x - it.x) < 3 && Math.abs(o.y - it.y) < 10)) continue;
     items.push(it);
   }
   items.sort((a, b) => b.y - a.y || a.x - b.x);

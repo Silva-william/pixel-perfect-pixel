@@ -33,6 +33,8 @@ export function parsePage(text: string): PageBlock[] {
 export function stripMedia(text: string) {
   return text.replace(MEDIA_RE, (_m, caption: string) => (caption ? `\n${caption}\n` : "\n"))
     .replace(/\*\*/g, "")
+    .replace(/^[ \t]*\|(?:[ \t]*:?-+:?[ \t]*\|)+[ \t]*$/gm, "")
+    .replace(/^[ \t]*\|(.+)\|[ \t]*$/gm, (_match, row: string) => row.split("|").map(cell => cell.trim()).join(". "))
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

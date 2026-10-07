@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- PDF extraction uses marked-content clipping bounds and native rectangular table geometry before page layout, so hidden text layers cannot contaminate readable tables.
