@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check, Pencil, X } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,7 +14,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { ProgressBar } from "@/components/ProgressBar";
 import { MaterialReader } from "@/components/study/MaterialReader";
-import { getMaterialDetail, type MaterialDetail } from "@/lib/materials";
+import { getMaterialDetail, renameMaterial, type MaterialDetail } from "@/lib/materials";
 import { useStudies } from "@/lib/studies-store";
 
 export const Route = createFileRoute("/_authenticated/materials/$id")({
