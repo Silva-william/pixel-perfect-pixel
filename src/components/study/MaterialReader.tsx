@@ -429,7 +429,7 @@ export function MaterialReader({
             <p className="text-xs text-muted-foreground">
               Apague o que não quer que seja lido. Para colocar um infográfico no meio do texto, deixe o cursor no
               lugar e clique em "Inserir imagem" (ou cole a imagem com Ctrl+V). A linha ![](...) vira a imagem; o
-              texto entre os colchetes vira a legenda.
+              texto entre os colchetes vira a legenda. Trechos entre ** aparecem em negrito.
             </p>
             <Textarea
               ref={editRef}
