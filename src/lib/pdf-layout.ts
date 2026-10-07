@@ -159,7 +159,15 @@ export function dropExercises(items: PdfItem[]): PdfItem[] {
 }
 
 export function layoutPages(pages: PdfItem[][]): string[] {
+  // Pages from the bibliography onward: drop continuation pages that are only references.
+  const refStart = pages.findIndex(hasReferencesHeading);
   const all = dropRepeatedItems(pages.map((items) => dropReferences(dropExercises(items)))).map(toLines);
+  if (refStart >= 0) {
+    for (let p = refStart + 1; p < all.length; p++) {
+      const t = render(all[p]!);
+      if (isBibliographyPage(t)) all[p] = [];
+    }
+  }
 
   // Footers/headers: lines repeated (ignoring numbers) on many pages.
   if (all.length >= 3) {
