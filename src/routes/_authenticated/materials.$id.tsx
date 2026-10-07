@@ -89,7 +89,13 @@ function MaterialPage() {
         ) : null}
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">{material.name}</h1>
+          <EditableTitle
+            name={material.name}
+            onSave={async (name) => {
+              const saved = await renameMaterial(material.id, name);
+              setMaterial({ ...material, name: saved });
+            }}
+          />
           <p className="text-sm text-muted-foreground">
             {material.type} · {material.pages} páginas · visto {material.lastViewed}
           </p>
