@@ -27,13 +27,22 @@ async function extractPdf(data: ArrayBuffer): Promise<string[]> {
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
   const doc = await pdfjs.getDocument({ data }).promise;
   const { layoutPages } = await import("@/lib/pdf-layout");
-  const raw: { str: string; x: number; y: number; h: number }[][] = [];
+  const raw: { str: string; x: number; y: number; h: number; bold: boolean }[][] = [];
   for (let i = 1; i <= doc.numPages; i++) {
-    const content = await (await doc.getPage(i)).getTextContent();
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
     const items = [];
     for (const item of content.items) {
       if (!("str" in item) || !item.str.trim()) continue;
-      items.push({ str: item.str, x: item.transform[4], y: item.transform[5], h: item.height || 10 });
+      // Resolve the font to keep the PDF's bold in the extracted text.
+      let bold = false;
+      try {
+        const font = await (page.commonObjs as { get(n: string): Promise<{ name?: string }> }).get(item.fontName);
+        bold = /bold|black|heavy|semibold|demi/i.test(font?.name ?? "");
+      } catch {
+        bold = false;
+      }
+      items.push({ str: item.str, x: item.transform[4], y: item.transform[5], h: item.height || 10, bold });
     }
     raw.push(items);
   }

@@ -4,7 +4,7 @@
  * overflows into the next page, and cover/table-of-contents noise on page 1.
  */
 
-export type PdfItem = { str: string; x: number; y: number; h: number };
+export type PdfItem = { str: string; x: number; y: number; h: number; bold?: boolean };
 type Line = { y: number; h: number; text: string; parts: PdfItem[] };
 
 const norm = (s: string) => s.replace(/\s+/g, " ").trim();
