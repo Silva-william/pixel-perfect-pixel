@@ -132,7 +132,7 @@ async function extractPdf(data: ArrayBuffer, saveImage?: SaveImage): Promise<str
   }
   // Reading order, repeated footers, page overflow and cover noise are handled in pdf-layout.
   return layoutPages(raw).map((t) =>
-    t.replace(/\s*\u0001(.*?)\u0001\s*/g, "\n\n$1\n\n").replace(/\n{3,}/g, "\n\n").trim(),
+    t.replace(/\s*\u0001(.*?)\u0001\s*/gs, "\n\n$1\n\n").replace(/\n{3,}/g, "\n\n").trim(),
   );
 }
 
