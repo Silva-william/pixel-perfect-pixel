@@ -82,7 +82,7 @@ async function extractPdf(data: ArrayBuffer, saveImage?: SaveImage): Promise<str
         const [, , pw, ph] = page.view as number[];
         const ol = await page.getOperatorList();
         const boxes = imageBoxes(ol, pdfjs.OPS).filter(
-          (b) => b.x1 - b.x0 > 80 && b.y1 - b.y0 > 60 && (b.x1 - b.x0) * (b.y1 - b.y0) > pw! * ph! * 0.03,
+          (b) => b.y0 > -5 && b.y1 < ph! + 5 && b.x1 - b.x0 > 80 && b.y1 - b.y0 > 60 && (b.x1 - b.x0) * (b.y1 - b.y0) > pw! * ph! * 0.03,
         );
         if (boxes.length) {
           const viewport = page.getViewport({ scale: 2 });
