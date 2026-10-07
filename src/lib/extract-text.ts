@@ -59,13 +59,28 @@ async function extractPdf(data: ArrayBuffer, saveImage?: SaveImage): Promise<str
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
   const doc = await pdfjs.getDocument({ data }).promise;
   const { layoutPages } = await import("@/lib/pdf-layout");
+  const { pdfGeometry, insidePdfBox } = await import("@/lib/pdf-visibility");
+  const { preservePdfTables } = await import("@/lib/pdf-tables");
   const raw: { str: string; x: number; y: number; h: number; bold: boolean }[][] = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
-    const content = await page.getTextContent();
+    const content = await page.getTextContent({ includeMarkedContent: true });
+    const operators = await page.getOperatorList();
+    const geometry = pdfGeometry(operators, pdfjs.OPS);
+    const groups: number[] = [];
+    let groupIndex = 0;
     const items = [];
     for (const item of content.items) {
+      if (!("str" in item)) {
+        if (item.type === "beginMarkedContent" || item.type === "beginMarkedContentProps") groups.push(groupIndex++);
+        else if (item.type === "endMarkedContent") groups.pop();
+        continue;
+      }
       if (!("str" in item) || !item.str.trim()) continue;
+      const positioned = { str: item.str, x: item.transform[4], y: item.transform[5], h: item.height || 10, w: item.width };
+      const group = groups[groups.length - 1];
+      const bounds = group === undefined ? null : geometry.groups[group];
+      if (bounds && !insidePdfBox(positioned, bounds)) continue;
       // Resolve the font to keep the PDF's bold in the extracted text.
       let bold = false;
       try {
@@ -74,14 +89,13 @@ async function extractPdf(data: ArrayBuffer, saveImage?: SaveImage): Promise<str
       } catch {
         bold = false;
       }
-      items.push({ str: item.str, x: item.transform[4], y: item.transform[5], h: item.height || 10, bold });
+      items.push({ ...positioned, bold });
     }
     // Figures (charts, screenshots, infographics) drawn as images: crop and keep them in the text.
     if (saveImage && i > 1) {
       try {
         const [, , pw, ph] = page.view as number[];
-        const ol = await page.getOperatorList();
-        const boxes = imageBoxes(ol, pdfjs.OPS).filter(
+        const boxes = imageBoxes(operators, pdfjs.OPS).filter(
           (b) => b.y0 > -5 && b.y1 < ph! + 5 && b.x1 - b.x0 > 80 && b.y1 - b.y0 > 60 && (b.x1 - b.x0) * (b.y1 - b.y0) > pw! * ph! * 0.03,
         );
         if (boxes.length) {
@@ -114,7 +128,7 @@ async function extractPdf(data: ArrayBuffer, saveImage?: SaveImage): Promise<str
         console.warn("Falha ao extrair imagens da página", i, e);
       }
     }
-    raw.push(items);
+    raw.push(preservePdfTables(items, geometry.cells).map(item => ({ ...item, bold: item.bold ?? false })));
   }
   // Reading order, repeated footers, page overflow and cover noise are handled in pdf-layout.
   return layoutPages(raw).map((t) =>
