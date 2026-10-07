@@ -47,3 +47,18 @@ export async function listActivity(limit = 8): Promise<Activity[]> {
     materialId: r.material_id,
   }));
 }
+
+/** Adds studied minutes to a subject (counted while the user is actively studying). */
+export async function addStudyMinutes(subjectId: string, minutes = 1) {
+  const { data } = await supabase.from("subjects").select("studied_minutes").eq("id", subjectId).maybeSingle();
+  if (!data) return;
+  await supabase.from("subjects").update({ studied_minutes: data.studied_minutes + minutes }).eq("id", subjectId);
+}
+
+/** "15 min" below one hour, otherwise "1h 20min". */
+export function formatStudyTime(minutes: number) {
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m ? `${h}h ${m}min` : `${h}h`;
+}
