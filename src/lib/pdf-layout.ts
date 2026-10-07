@@ -55,8 +55,32 @@ function render(lines: Line[]) {
   return text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+/** Removes repeated footer/header items (and the page number next to them) before building lines. */
+function dropRepeatedItems(pages: PdfItem[][]): PdfItem[][] {
+  if (pages.length < 3) return pages;
+  const count = new Map<string, number>();
+  for (const items of pages)
+    for (const k of new Set(items.filter((i) => norm(i.str).length >= 8).map((i) => repeatKey(i.str)))) count.set(k, (count.get(k) ?? 0) + 1);
+  const min = Math.max(3, Math.ceil(pages.length * 0.4));
+  const repeated = [...count.entries()].filter(([, n]) => n >= min).map(([k]) => k);
+  if (!repeated.length) return pages;
+  return pages.map((items) => {
+    const bands: number[] = [];
+    const isRep = (i: PdfItem) => {
+      const k = repeatKey(i.str);
+      return k.length >= 8 && repeated.some((r) => r === k || (k.length >= 15 && r.startsWith(k.slice(0, 15))));
+    };
+    for (const i of items) if (isRep(i)) bands.push(i.y);
+    return items.filter((i) => {
+      if (isRep(i)) return false;
+      const near = bands.some((y) => Math.abs(y - i.y) < 3);
+      return !(near && /^\s*[\dA-ZÀ-Ú]{0,3}\s*$/.test(i.str));
+    });
+  });
+}
+
 export function layoutPages(pages: PdfItem[][]): string[] {
-  const all = pages.map(toLines);
+  const all = dropRepeatedItems(pages).map(toLines);
 
   // Footers/headers: lines repeated (ignoring numbers) on many pages.
   if (all.length >= 3) {
