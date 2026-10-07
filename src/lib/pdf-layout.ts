@@ -102,8 +102,38 @@ function dropRepeatedItems(pages: PdfItem[][]): PdfItem[][] {
   });
 }
 
+/**
+ * Removes practice exercises ("A importância da...", options a–e, "Gabarito na página N"):
+ * the block between the large exercise title and the "Gabarito" line, drawn in a
+ * larger font than the body text.
+ */
+export function dropExercises(items: PdfItem[]): PdfItem[] {
+  // Answer key section ("Gabarito" heading): drop it and everything below on that page.
+  const key = items.find((i) => /^\s*gabarito\s*$/i.test(i.str) && i.h >= 14);
+  if (key) items = items.filter((i) => i.y > key.y + 1);
+  const gab = items.filter((i) => /gabarito\s+na\s+p[áa]gina/i.test(i.str));
+  if (!gab.length) return items;
+  const hs = new Map<number, number>();
+  for (const i of items) hs.set(Math.round(i.h), (hs.get(Math.round(i.h)) ?? 0) + 1);
+  const body = [...hs.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 9;
+  const drop = new Set<PdfItem>();
+  for (const g of gab) {
+    drop.add(g);
+    const title = items
+      .filter((i) => i.y > g.y && i.h >= body * 1.8)
+      .sort((a, b) => b.y - a.y)[0];
+    if (!title) continue;
+    for (const i of items) {
+      if (i.y < g.y || i.y > title.y + 1) continue;
+      const exerciseFont = i.h >= body * 1.8 || (i.h >= body * 1.15 && i.h <= body * 1.4);
+      if (exerciseFont) drop.add(i);
+    }
+  }
+  return items.filter((i) => !drop.has(i));
+}
+
 export function layoutPages(pages: PdfItem[][]): string[] {
-  const all = dropRepeatedItems(pages).map(toLines);
+  const all = dropRepeatedItems(pages.map(dropExercises)).map(toLines);
 
   // Footers/headers: lines repeated (ignoring numbers) on many pages.
   if (all.length >= 3) {
