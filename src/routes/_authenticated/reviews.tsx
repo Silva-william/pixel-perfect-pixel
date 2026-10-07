@@ -44,7 +44,7 @@ function ReviewsPage() {
         {dueCount === 0 && nextDue ? (
           <p className="text-sm text-muted-foreground">
             Nenhuma revisão para hoje 🎉 Próxima revisão:{" "}
-            {nextDue.toLocaleDateString("pt-BR", { day: "numeric", month: "long" })}
+            {new Date(nextDue).toLocaleDateString("pt-BR", { day: "numeric", month: "long" })}
           </p>
         ) : null}
         <Button onClick={() => navigate({ to: "/flashcards" })}>Começar revisão</Button>
