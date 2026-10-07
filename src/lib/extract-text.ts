@@ -26,34 +26,19 @@ async function extractPdf(data: ArrayBuffer): Promise<string[]> {
   const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
   const doc = await pdfjs.getDocument({ data }).promise;
-  const pages: string[] = [];
+  const { layoutPages } = await import("@/lib/pdf-layout");
+  const raw: { str: string; x: number; y: number; h: number }[][] = [];
   for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    // PDFs often store text out of reading order (e.g. block quotes written last),
-    // so rebuild lines from the item positions: top to bottom, left to right.
-    type It = { str: string; x: number; y: number; h: number };
-    const items: It[] = [];
+    const content = await (await doc.getPage(i)).getTextContent();
+    const items = [];
     for (const item of content.items) {
       if (!("str" in item) || !item.str.trim()) continue;
       items.push({ str: item.str, x: item.transform[4], y: item.transform[5], h: item.height || 10 });
     }
-    items.sort((a, b) => b.y - a.y || a.x - b.x);
-    const lines: { y: number; h: number; parts: It[] }[] = [];
-    for (const it of items) {
-      const line = lines[lines.length - 1];
-      if (line && Math.abs(line.y - it.y) < it.h * 0.5) line.parts.push(it);
-      else lines.push({ y: it.y, h: it.h, parts: [it] });
-    }
-    let text = "";
-    lines.forEach((l, idx) => {
-      const str = l.parts.sort((a, b) => a.x - b.x).map((p) => p.str).join(" ");
-      if (idx > 0) text += lines[idx - 1]!.y - l.y > l.h * 2.2 ? "\n\n" : "\n";
-      text += str;
-    });
-    pages.push(text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim());
+    raw.push(items);
   }
-  return pages;
+  // Reading order, repeated footers, page overflow and cover noise are handled in pdf-layout.
+  return layoutPages(raw);
 }
 
 async function extractDocx(data: ArrayBuffer): Promise<string[]> {
