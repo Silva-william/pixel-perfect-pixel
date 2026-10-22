@@ -1,4 +1,5 @@
 # Material por link
+- [ ] Filtrar capas, fundos e ícones decorativos, mantendo figuras e infográficos didáticos; testar os ebooks das unidades 1 e 2.
 - [x] Corrigir as origens de imagens do link ENG_LABSOF_20/unidade_1: 22 downloads reais sem falhas e 23 testes aprovados.
 - [x] Importar texto, imagens e infográficos de links públicos da FMU para o leitor existente.
 - [x] Manter negrito, tabelas e filtros de exercícios, gabaritos e referências.

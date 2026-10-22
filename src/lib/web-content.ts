@@ -30,6 +30,13 @@ export function extractWebContent(html: string, source: string): WebDocument {
     heading.remove();
   }
   const images: string[] = [];
+  const isDecorativeImage = (el: Element, value: string) => {
+    // Filter the visual shell, not its text or the neighboring lesson figure.
+    if (el.closest(".header-capa, .w-background-video, .mouse-over-colorido, .logo-impressao, .maisinho, .bolinhas, .image-hamburguer, [role=presentation]")) return true;
+    let filename = "";
+    try { filename = decodeURIComponent(new URL(value, source).pathname.split("/").pop() ?? ""); } catch { return true; }
+    return /(?:^|[-_\s])(?:logo|topo-bg|lupinha|capa-video|livros-capa|poster)(?:[-_.\s]|$)|-poster-\d+\./i.test(filename);
+  };
   const resolveImage = (value: string) => {
     try {
       const url = new URL(value, source);
@@ -44,7 +51,10 @@ export function extractWebContent(html: string, source: string): WebDocument {
     if (node.nodeType !== 1) return "";
     const el = node as Element;
     const children = () => Array.from(el.childNodes).map(inline).join("");
-    if (el.tagName === "IMG") return resolveImage(el.getAttribute("data-src") || el.getAttribute("src") || "");
+    if (el.tagName === "IMG") {
+      const src = el.getAttribute("data-src") || el.getAttribute("src") || "";
+      return !src || isDecorativeImage(el, src) ? "" : resolveImage(src);
+    }
     if (el.tagName === "BR") return "\n";
     if (el.tagName === "STRONG" || el.tagName === "B") return `**${children().trim()}**`;
     if (el.tagName === "TABLE" || el.classList.contains("div-block-55")) {
@@ -58,7 +68,8 @@ export function extractWebContent(html: string, source: string): WebDocument {
     }
     let value = children();
     const background = el.getAttribute("style")?.match(/background(?:-image)?\s*:[^;]*url\(["']?([^"')]+)["']?\)/i)?.[1];
-    if (background) value = resolveImage(background) + value;
+    // CSS backgrounds are decoration unless explicitly inside a didactic figure.
+    if (background && el.closest("figure, .bloco-imagem, .infografico, .infographic") && !isDecorativeImage(el, background)) value = resolveImage(background) + value;
     if (/^H[1-6]$/.test(el.tagName)) return `\n\n**${value.trim().replace(/\*\*/g, "")}**\n\n`;
     if (el.tagName === "LI") return `\n• ${value.trim()}\n`;
     if (/^(P|DIV|SECTION|ARTICLE|BLOCKQUOTE|FIGURE|UL|OL)$/.test(el.tagName)) return `\n\n${value.trim()}\n\n`;
