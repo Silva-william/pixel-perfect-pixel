@@ -6,7 +6,7 @@ export type WebDocument = { title: string; pages: string[]; images: string[] };
 export function extractWebContent(html: string, source: string): WebDocument {
   const { document } = parseHTML(html);
   const title = document.querySelector("title")?.textContent?.trim().replace(/\s+/g, " ") || "Material por link";
-  const unitTitle = document.querySelector(".intro-header .paragraph-bigger")?.textContent?.trim().replace(/\s+/g, " ");
+   const unitTitle = document.querySelector(".intro-header .paragraph-bigger, #header .subtitle")?.textContent?.trim().replace(/\s+/g, " ");
   const root = document.querySelector("main, article, [role=main]") ?? document.body;
   for (const label of Array.from(root.querySelectorAll(".titulo-quiz, .text-block-14"))) {
     if (/teste seus conhecimentos|atividade n[aã]o pontuada/i.test(label.textContent ?? "")) {
@@ -14,7 +14,10 @@ export function extractWebContent(html: string, source: string): WebDocument {
       if (group && group.textContent && group.textContent.length < 500) group.remove();
     }
   }
-  root.querySelectorAll("script, style, noscript, nav, footer, form, iframe, .w-nav, .ref_bibliografica, .praticar-div, .intro-header, .linha, .call-action, .w-slider-arrow-left, .w-slider-arrow-right, .w-slider-nav, [hidden], [aria-hidden=true]").forEach(el => el.remove());
+   for (const heading of Array.from(root.querySelectorAll(".caixa-icone-foto h1"))) {
+     if (/^vamos praticar[!\s]*$/i.test(heading.textContent?.trim() ?? "")) heading.closest(".caixa-icone-foto")?.remove();
+   }
+   root.querySelectorAll("script, style, noscript, nav, footer, form, iframe, .w-nav, .ref_bibliografica, .referencias, .agora-voce, .praticar-div, .intro-header, #header, .voltar-topo, .para-final, .linha, .call-action, .w-slider-arrow-left, .w-slider-arrow-right, .w-slider-nav, [hidden], [aria-hidden=true]").forEach(el => el.remove());
   // Drop exercise sections, but preserve the lesson which follows them.
   for (const heading of Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6"))) {
     const label = (heading.textContent ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -32,10 +35,10 @@ export function extractWebContent(html: string, source: string): WebDocument {
   const images: string[] = [];
   const isDecorativeImage = (el: Element, value: string) => {
     // Filter the visual shell, not its text or the neighboring lesson figure.
-    if (el.closest(".header-capa, .w-background-video, .mouse-over-colorido, .logo-impressao, .maisinho, .bolinhas, .image-hamburguer, [role=presentation]")) return true;
+     if (el.closest(".header-capa, .w-background-video, .mouse-over-colorido, .logo-impressao, .maisinho, .bolinhas, .image-hamburguer, .img-zoom, .icone-area, #img-introduction, [role=presentation]")) return true;
     let filename = "";
     try { filename = decodeURIComponent(new URL(value, source).pathname.split("/").pop() ?? ""); } catch { return true; }
-    return /(?:^|[-_\s])(?:logo|topo-bg|lupinha|capa-video|livros-capa|poster|box-para-ler|voce-sabia|saiba-mais-video|saiba-mais-artigo|icone)(?:[-_.\s]|$)|-poster-\d+\.|^linha(?:[-_.]|$)/i.test(filename);
+     return /(?:^|[-_\s])(?:logo|topo-bg|lupinha|lupa|exclude|icon|capa-video|livros-capa|poster|box-para-ler|voce-sabia|saiba-mais-video|saiba-mais-artigo|icone)(?:[-_.\s]|$)|-poster-\d+\.|^linha(?:[-_.]|$)/i.test(filename);
   };
   const resolveImage = (value: string) => {
     try {

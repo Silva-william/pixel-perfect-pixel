@@ -1,4 +1,5 @@
 # Material por link
+- [x] Corrigir CTI_COMFOR_21/unidade_1: reunir sete seções, extrair quatro páginas e baixar as seis figuras reais; 26 testes aprovados, exercícios e referências excluídos.
 - [x] Filtrar capas, fundos e ícones decorativos, mantendo figuras e infográficos didáticos; validar as unidades 1 e 2, incluindo a Figura 2.1.
 - [x] Corrigir as origens de imagens do link ENG_LABSOF_20/unidade_1: 22 downloads reais sem falhas e 23 testes aprovados.
 - [x] Importar texto, imagens e infográficos de links públicos da FMU para o leitor existente.
