@@ -2,6 +2,27 @@ import { describe, expect, it } from "vitest";
 import { extractWebContent, validateWebUrl, validateImportHost, validateImportImageHost } from "./web-content";
 
 describe("material por link", () => {
+  it("ignora a capa decorativa e mantém a Figura 2.1 no conteúdo", () => {
+    const result = extractWebContent('<html><body><div class="header-capa w-background-video"><div style="background-image:url(https://uploads-ssl.webflow.com/media/Pexels-poster-00001.jpg)"></div><img src="images/logo-branca-br.svg"><h1>Banco de dados</h1></div><p>Arquitetura</p><div class="bloco-imagem"><a><div class="mouse-over-colorido"><img src="https://uploads-ssl.webflow.com/assets/lupinha.svg"></div><img class="imagem-thumbnail" src="images/figura.2.1.png"></a><p>Figura 2.1 - Arquitetura de Banco de Dados</p></div></body></html>', "https://faculdade.edu/ebook/index.html");
+    expect(result.images).toEqual(["https://faculdade.edu/ebook/images/figura.2.1.png"]);
+    expect(result.pages.join("\n")).toContain("**Banco de dados**");
+    expect(result.pages.join("\n")).toContain("Arquitetura\n\n![ ](web-image:0)\n\nFigura 2.1 - Arquitetura de Banco de Dados");
+  });
+  it("exclui ícones e capas genéricas sem excluir explicações ou diagramas SVG", () => {
+    const result = extractWebContent('<html><body><div><img class="image-hamburguer" src="https://uploads-ssl.webflow.com/assets/Ativo%2014.svg"><p>Etapa importante</p></div><img class="maisinho" src="images/topo-bg-mais-1.svg"><img class="bolinhas" src="images/topo-bg-bolinhas.svg"><img src="images/capa-video-generica.jpg"><img src="images/livros-capa-generica.jpg"><figure><img src="images/arquitetura.svg"><figcaption>Diagrama</figcaption></figure></body></html>', "https://faculdade.edu/ebook/index.html");
+    expect(result.images).toEqual(["https://faculdade.edu/ebook/images/arquitetura.svg"]);
+    expect(result.pages.join("\n")).toContain("Etapa importante");
+  });
+  it("ignora fundos de página e mantém infográficos de fundo dentro de figuras", () => {
+    const result = extractWebContent('<html><body><section style="background-image:url(images/background.jpg)"><p>Aula</p></section><figure><div style="background-image:url(images/infografico.png)"></div><figcaption>Infográfico</figcaption></figure></body></html>', "https://faculdade.edu/ebook/index.html");
+    expect(result.images).toEqual(["https://faculdade.edu/ebook/images/infografico.png"]);
+    expect(result.pages.join("\n")).toContain("Aula");
+  });
+  it("remove ícones de caixas informativas mas mantém seu texto e infográfico", () => {
+    const result = extractWebContent('<html><body><section><img src="images/voce-sabia.png"><p>Explicação importante</p><img src="images/box-para-ler.png"><img src="images/linha_1linha.png"><img src="images/saiba-mais-video-branco.png"><img src="images/saiba-mais-artigo-branco.png"><div class="imagem-div"><img src="images/infografico---simples-1.png"></div></section></body></html>', "https://faculdade.edu/ebook/index.html");
+    expect(result.images).toEqual(["https://faculdade.edu/ebook/images/infografico---simples-1.png"]);
+    expect(result.pages.join("\n")).toContain("Explicação importante");
+  });
   it("preserva texto, negrito e infográfico na ordem original", () => {
     const result = extractWebContent('<html><head><title>Unidade 2</title></head><body><main><p>Antes <strong>segurança</strong>.</p><img src="images/info.png"><p>Depois.</p></main></body></html>', "https://faculdade.edu/ebook/index.html");
     expect(result.pages[0]).toBe("Antes **segurança**.\n\n![ ](web-image:0)\n\nDepois.");
