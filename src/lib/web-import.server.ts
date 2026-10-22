@@ -42,6 +42,20 @@ export async function fetchPublicResource(value: string, limit: number, kind: "p
   throw new Error("Este link redireciona muitas vezes.");
 }
 
+/** Servers often label images as octet-stream; trust the file signature over the header. */
+export function sniffImageType(bytes: Uint8Array, declared: string): string {
+  if (/^image\/(png|jpeg|webp|gif|svg\+xml|avif)$/.test(declared)) return declared;
+  if (bytes.length >= 4 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  const text = new TextDecoder();
+  if (bytes.length >= 6 && text.decode(bytes.subarray(0, 6)).startsWith("GIF8")) return "image/gif";
+  if (bytes.length >= 12 && text.decode(bytes.subarray(0, 4)) === "RIFF" && text.decode(bytes.subarray(8, 12)) === "WEBP") return "image/webp";
+  if (bytes.length >= 12 && text.decode(bytes.subarray(4, 8)) === "ftyp" && text.decode(bytes.subarray(8, 12)).startsWith("avif")) return "image/avif";
+  const head = text.decode(bytes.subarray(0, 512)).trimStart();
+  if (head.startsWith("<svg") || (head.startsWith("<?xml") && head.includes("<svg"))) return "image/svg+xml";
+  return "";
+}
+
 /** Read the known FMU section manifest as data only; never execute remote scripts. */
 export async function loadWebLesson(html: string, source: string): Promise<{ html: string; sections: { url: string; html: string }[] }> {
   const { document } = parseHTML(html);
@@ -110,10 +124,11 @@ export async function importWebMaterial(supabase: SupabaseClient<Database>, user
       if (!imageUrl) continue;
       try {
         const image = await fetchPublicResource(imageUrl, 10 * 1024 * 1024, "image");
-        if (!/^image\/(png|jpeg|webp|gif|svg\+xml|avif)$/.test(image.type)) throw new Error("Formato de imagem não aceito.");
-        const ext = image.type.split("/")[1]?.replace("svg+xml", "svg").replace("jpeg", "jpg") ?? "png";
+        const type = sniffImageType(image.bytes, image.type);
+        if (!type) throw new Error("Formato de imagem não aceito.");
+        const ext = type.split("/")[1]?.replace("svg+xml", "svg").replace("jpeg", "jpg") ?? "png";
         const path = `${userId}/images/${id}/web-${crypto.randomUUID()}.${ext}`;
-        const { error } = await supabase.storage.from("materials").upload(path, image.bytes, { contentType: image.type });
+        const { error } = await supabase.storage.from("materials").upload(path, image.bytes, { contentType: type });
         if (error) throw error;
         uploaded.push(path);
         replacements.set(i, mediaMarker("", path));
