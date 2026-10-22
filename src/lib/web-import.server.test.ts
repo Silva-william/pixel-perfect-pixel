@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchPublicResource, loadWebLesson } from "./web-import.server";
+import { fetchPublicResource, loadWebLesson, sniffImageType } from "./web-import.server";
 import { extractWebContent } from "./web-content";
 
 const imageUrl = "https://uploads-ssl.webflow.com/5c0fb0def554acb75500c1fc/5c110206ea9a8540ec10478d_lupinha.svg";
@@ -76,5 +76,26 @@ describe("download de imagens FMU hospedadas no Webflow", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(fetchPublicResource(imageUrl, 1024, "image")).rejects.toThrow("pública");
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("identificação de imagens pelo conteúdo do arquivo", () => {
+  it("reconhece PNG servido como octet-stream, como nas aulas da FMU", () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+    expect(sniffImageType(png, "binary/octet-stream")).toBe("image/png");
+  });
+  it("reconhece JPEG sem extensão no nome do arquivo", () => {
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]);
+    expect(sniffImageType(jpeg, "application/octet-stream")).toBe("image/jpeg");
+  });
+  it("reconhece SVG servido como texto", () => {
+    const svg = new TextEncoder().encode('<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"></svg>');
+    expect(sniffImageType(svg, "text/plain")).toBe("image/svg+xml");
+  });
+  it("mantém o tipo declarado quando já é uma imagem válida", () => {
+    expect(sniffImageType(new Uint8Array([1, 2, 3]), "image/webp")).toBe("image/webp");
+  });
+  it("recusa arquivos que não são imagens", () => {
+    expect(sniffImageType(new TextEncoder().encode("<html><body>página</body></html>"), "binary/octet-stream")).toBe("");
   });
 });
