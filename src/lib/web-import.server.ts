@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { extractWebContent, validateImportHost, validateImportImageHost } from "./web-content";
 import { mediaMarker } from "./page-media";
+import { parseHTML } from "linkedom";
 
 /** Validate DNS and every redirect before fetching user-supplied public URLs. */
 export async function fetchPublicResource(value: string, limit: number, kind: "page" | "image" = "page"): Promise<{ bytes: Uint8Array; url: string; type: string }> {
@@ -41,6 +42,38 @@ export async function fetchPublicResource(value: string, limit: number, kind: "p
   throw new Error("Este link redireciona muitas vezes.");
 }
 
+/** Read the known FMU section manifest as data only; never execute remote scripts. */
+export async function loadWebLesson(html: string, source: string): Promise<{ html: string; sections: { url: string; html: string }[] }> {
+  const { document } = parseHTML(html);
+  const renderer = Array.from(document.querySelectorAll("script[src]")).find(el => el.getAttribute("src") === "js/render.js");
+  if (!renderer) return { html, sections: [] };
+  const manifest = await fetchPublicResource(new URL("js/render.js", source).href, 256 * 1024);
+  const script = new TextDecoder().decode(manifest.bytes);
+  const countMatch = script.match(/for\s*\(\s*var\s+page\s*=\s*1\s*;\s*page\s*<=\s*(\d+)\s*;\s*page\+\+\s*\)/);
+  const count = Number(countMatch?.[1]);
+  if (!Number.isInteger(count) || count < 1 || count > 50 || !/url\s*:\s*["']sections\/["']\s*\+\s*page\s*\+\s*["']\.html["']/.test(script)) {
+    throw new Error("Não foi possível identificar as partes desta aula da FMU.");
+  }
+  const sections: { url: string; html: string }[] = [];
+  let size = html.length;
+  for (let page = 1; page <= count; page++) {
+    const section = await fetchPublicResource(new URL(`sections/${page}.html`, source).href, 5 * 1024 * 1024);
+    if (!/html/.test(section.type)) throw new Error(`Não foi possível carregar a parte ${page} da aula.`);
+    const content = new TextDecoder().decode(section.bytes);
+    size += content.length;
+    if (size > 5 * 1024 * 1024) throw new Error("O conteúdo é grande demais para importar.");
+    sections.push({ url: section.url, html: content });
+  }
+  const main = document.createElement("main");
+  for (const section of sections) {
+    const wrapper = document.createElement("section");
+    wrapper.innerHTML = section.html;
+    main.appendChild(wrapper);
+  }
+  document.body.appendChild(main);
+  return { html: document.toString(), sections };
+}
+
 export async function importWebMaterial(supabase: SupabaseClient<Database>, userId: string, input: { subjectId?: string; materialId?: string; url?: string }) {
   let source = input.url;
   let id = input.materialId;
@@ -59,7 +92,8 @@ export async function importWebMaterial(supabase: SupabaseClient<Database>, user
   const fetched = await fetchPublicResource(source, 5 * 1024 * 1024);
   if (!/html/.test(fetched.type)) throw new Error("Este link deve abrir uma página de conteúdo HTML. Para PDFs, envie o arquivo.");
   const html = new TextDecoder().decode(fetched.bytes);
-  const extracted = extractWebContent(html, fetched.url);
+   const lesson = await loadWebLesson(html, fetched.url);
+   const extracted = extractWebContent(lesson.html, fetched.url);
   if (!extracted.pages.length || extracted.pages.join("").length < 100) throw new Error("Não encontramos conteúdo para estudar. A página pode exigir login ou carregar o texto apenas depois de abrir no navegador.");
   id ??= crypto.randomUUID();
   const created = !input.materialId;
@@ -87,7 +121,7 @@ export async function importWebMaterial(supabase: SupabaseClient<Database>, user
     }
     const pages = extracted.pages.map(p => p.replace(/!\[ \]\(web-image:(\d+)\)/g, (_m, n: string) => replacements.get(Number(n)) ?? "[Imagem indisponível na origem]"));
     const path = `${userId}/${subjectId}/${id}-link.json`;
-    const { error: fileError } = await supabase.storage.from("materials").upload(path, new Blob([JSON.stringify({ source: fetched.url, html })], { type: "application/json" }), { contentType: "application/json", upsert: true });
+     const { error: fileError } = await supabase.storage.from("materials").upload(path, new Blob([JSON.stringify({ source: fetched.url, html, sections: lesson.sections })], { type: "application/json" }), { contentType: "application/json", upsert: true });
     if (fileError) throw fileError;
     if (created) uploaded.push(path);
     const rows = pages.map((content, i) => ({ user_id: userId, material_id: id as string, page_number: i + 1, content }));
