@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { extractWebContent, validateImportHost } from "./web-content";
+import { extractWebContent, validateImportHost, validateImportImageHost } from "./web-content";
 import { mediaMarker } from "./page-media";
 
 /** Validate DNS and every redirect before fetching user-supplied public URLs. */
-export async function fetchPublicResource(value: string, limit: number): Promise<{ bytes: Uint8Array; url: string; type: string }> {
-  let url = validateImportHost(value);
+export async function fetchPublicResource(value: string, limit: number, kind: "page" | "image" = "page"): Promise<{ bytes: Uint8Array; url: string; type: string }> {
+  const validateHost = kind === "image" ? validateImportImageHost : validateImportHost;
+  let url = validateHost(value);
   for (let i = 0; i < 5; i++) {
     const dns = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(url.hostname)}&type=A`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(15000) });
     if (!dns.ok) throw new Error("Não foi possível verificar o endereço da página.");
@@ -16,7 +17,7 @@ export async function fetchPublicResource(value: string, limit: number): Promise
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
       if (!location) throw new Error("O link redirecionou sem informar a página.");
-      url = validateImportHost(new URL(location, url).href);
+      url = validateHost(new URL(location, url).href);
       continue;
     }
     if (!response.ok) throw new Error(`A página não pôde ser acessada (${response.status}). Verifique se o link é público e não exige login.`);
@@ -74,7 +75,7 @@ export async function importWebMaterial(supabase: SupabaseClient<Database>, user
       const imageUrl = extracted.images[i];
       if (!imageUrl) continue;
       try {
-        const image = await fetchPublicResource(imageUrl, 10 * 1024 * 1024);
+        const image = await fetchPublicResource(imageUrl, 10 * 1024 * 1024, "image");
         if (!/^image\/(png|jpeg|webp|gif|svg\+xml|avif)$/.test(image.type)) throw new Error("Formato de imagem não aceito.");
         const ext = image.type.split("/")[1]?.replace("svg+xml", "svg").replace("jpeg", "jpg") ?? "png";
         const path = `${userId}/images/${id}/web-${crypto.randomUUID()}.${ext}`;

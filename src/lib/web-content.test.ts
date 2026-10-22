@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractWebContent, validateWebUrl, validateImportHost } from "./web-content";
+import { extractWebContent, validateWebUrl, validateImportHost, validateImportImageHost } from "./web-content";
 
 describe("material por link", () => {
   it("preserva texto, negrito e infográfico na ordem original", () => {
@@ -31,6 +31,14 @@ describe("material por link", () => {
   it("aceita a origem FMU fornecida e bloqueia domínios arbitrários", () => {
     expect(validateImportHost("https://fmu-content.s3.us-east-1.amazonaws.com/FMU/EAD/Conteudo/CTI_AUDSIS_21/unidade_2/ebook/index.html").hostname).toBe("fmu-content.s3.us-east-1.amazonaws.com");
     expect(() => validateImportHost("https://attacker.example/aula")).toThrow();
+  });
+  it("aceita as imagens Webflow da aula de laboratório sem liberar o CDN como material", () => {
+    const image = "https://uploads-ssl.webflow.com/5c0fb0def554acb75500c1fc/5c110206ea9a8540ec10478d_lupinha.svg";
+    expect(validateImportImageHost(image).hostname).toBe("uploads-ssl.webflow.com");
+    expect(validateImportImageHost("https://cdn.prod.website-files.com/assets/figure.png").hostname).toBe("cdn.prod.website-files.com");
+    expect(() => validateImportHost(image)).toThrow();
+    expect(() => validateImportImageHost("https://uploads-ssl.webflow.com.attacker.example/figure.png")).toThrow();
+    expect(() => validateImportImageHost("https://attacker.example/figure.png")).toThrow();
   });
   it.each(["http://faculdade.edu", "https://127.0.0.1/a", "https://[::1]/", "https://localhost/", "https://site.internal/", "https://user:pass@faculdade.edu/"])("bloqueia endereço não público: %s", value => {
     expect(() => validateWebUrl(value)).toThrow();
