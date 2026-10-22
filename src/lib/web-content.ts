@@ -92,3 +92,12 @@ export function validateImportHost(value: string): URL {
   }
   return url;
 }
+
+/** Image CDNs used by the trusted FMU ebooks; these are not allowed as lesson sources. */
+export function validateImportImageHost(value: string): URL {
+  const url = validateWebUrl(value);
+  if (!["fmu-content.s3.us-east-1.amazonaws.com", "uploads-ssl.webflow.com", "cdn.prod.website-files.com"].includes(url.hostname)) {
+    throw new Error("A origem desta imagem não é permitida para importação.");
+  }
+  return url;
+}
