@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { extractWebContent, validateWebUrl, validateImportHost, validateImportImageHost } from "./web-content";
 
 describe("material por link", () => {
+  it("mantém figuras do formato em seções sem ícones, exercícios e referências", () => {
+    const result = extractWebContent('<html><body><main><img id="img-introduction" src="img/introduction.png"><p>Aula</p><img src="img/Exclude.png"><img src="img/caixas/icon_o_conhece.png"><div class="agora-voce">Agora é com você! Esta atividade não é pontuada.</div><div class="caixa-icone-foto"><div class="text-area"><h1>Vamos Praticar!</h1><p>Escreva uma resenha.</p></div></div><p>Explicação seguinte</p><div class="caixa-fonte"><span class="zoom"><img src="sections/img/figure.jpg"><img class="img-zoom" src="./img/lupa.png"></span><div>Figura 5 - Quadro semiótico</div></div><div class="referencias"><h1>Referências</h1><p>BRASIL. Decreto-lei</p></div></main></body></html>', 'https://fmu-content.s3.us-east-1.amazonaws.com/ebook/index.html');
+    expect(result.images).toEqual(['https://fmu-content.s3.us-east-1.amazonaws.com/ebook/sections/img/figure.jpg']);
+    expect(result.pages.join('\n')).toContain('Explicação seguinte');
+    expect(result.pages.join('\n')).toContain('Figura 5 - Quadro semiótico');
+    expect(result.pages.join('\n')).not.toMatch(/atividade|resenha|Decreto-lei/);
+  });
   it("ignora a capa decorativa e mantém a Figura 2.1 no conteúdo", () => {
     const result = extractWebContent('<html><body><div class="header-capa w-background-video"><div style="background-image:url(https://uploads-ssl.webflow.com/media/Pexels-poster-00001.jpg)"></div><img src="images/logo-branca-br.svg"><h1>Banco de dados</h1></div><p>Arquitetura</p><div class="bloco-imagem"><a><div class="mouse-over-colorido"><img src="https://uploads-ssl.webflow.com/assets/lupinha.svg"></div><img class="imagem-thumbnail" src="images/figura.2.1.png"></a><p>Figura 2.1 - Arquitetura de Banco de Dados</p></div></body></html>', "https://faculdade.edu/ebook/index.html");
     expect(result.images).toEqual(["https://faculdade.edu/ebook/images/figura.2.1.png"]);
