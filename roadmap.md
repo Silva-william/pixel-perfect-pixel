@@ -1,5 +1,5 @@
 # Material por link
-- [ ] Corrigir e testar as imagens que falham no link ENG_LABSOF_20/unidade_1 informado.
+- [x] Corrigir as origens de imagens do link ENG_LABSOF_20/unidade_1: 22 downloads reais sem falhas e 23 testes aprovados.
 - [x] Importar texto, imagens e infográficos de links públicos da FMU para o leitor existente.
 - [x] Manter negrito, tabelas e filtros de exercícios, gabaritos e referências.
 - [x] Adicionar opção de link junto ao envio de arquivos e permitir reprocessamento.
