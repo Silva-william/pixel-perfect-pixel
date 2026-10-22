@@ -18,6 +18,11 @@ describe("material por link", () => {
     expect(result.images).toEqual(["https://faculdade.edu/ebook/images/infografico.png"]);
     expect(result.pages.join("\n")).toContain("Aula");
   });
+  it("remove ícones de caixas informativas mas mantém seu texto e infográfico", () => {
+    const result = extractWebContent('<html><body><section><img src="images/voce-sabia.png"><p>Explicação importante</p><img src="images/box-para-ler.png"><img src="images/linha_1linha.png"><img src="images/saiba-mais-video-branco.png"><img src="images/saiba-mais-artigo-branco.png"><div class="imagem-div"><img src="images/infografico---simples-1.png"></div></section></body></html>', "https://faculdade.edu/ebook/index.html");
+    expect(result.images).toEqual(["https://faculdade.edu/ebook/images/infografico---simples-1.png"]);
+    expect(result.pages.join("\n")).toContain("Explicação importante");
+  });
   it("preserva texto, negrito e infográfico na ordem original", () => {
     const result = extractWebContent('<html><head><title>Unidade 2</title></head><body><main><p>Antes <strong>segurança</strong>.</p><img src="images/info.png"><p>Depois.</p></main></body></html>', "https://faculdade.edu/ebook/index.html");
     expect(result.pages[0]).toBe("Antes **segurança**.\n\n![ ](web-image:0)\n\nDepois.");

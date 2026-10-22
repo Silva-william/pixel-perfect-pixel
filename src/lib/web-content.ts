@@ -35,7 +35,7 @@ export function extractWebContent(html: string, source: string): WebDocument {
     if (el.closest(".header-capa, .w-background-video, .mouse-over-colorido, .logo-impressao, .maisinho, .bolinhas, .image-hamburguer, [role=presentation]")) return true;
     let filename = "";
     try { filename = decodeURIComponent(new URL(value, source).pathname.split("/").pop() ?? ""); } catch { return true; }
-    return /(?:^|[-_\s])(?:logo|topo-bg|lupinha|capa-video|livros-capa|poster)(?:[-_.\s]|$)|-poster-\d+\./i.test(filename);
+    return /(?:^|[-_\s])(?:logo|topo-bg|lupinha|capa-video|livros-capa|poster|box-para-ler|voce-sabia|saiba-mais-video|saiba-mais-artigo|icone)(?:[-_.\s]|$)|-poster-\d+\.|^linha(?:[-_.]|$)/i.test(filename);
   };
   const resolveImage = (value: string) => {
     try {
