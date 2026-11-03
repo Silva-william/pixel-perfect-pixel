@@ -41,6 +41,7 @@ import { AudioPlayer, chunkText, type ListenPosition } from "@/components/study/
 import { PageContent } from "@/components/study/PageContent";
 import { addStudyMinutes, logActivity } from "@/lib/activity";
 import { mediaMarker, stripMedia } from "@/lib/page-media";
+import { openOriginalInBrowser } from "@/lib/open-original";
 import {
   deleteMaterial,
   getOriginalUrl,
@@ -191,7 +192,8 @@ export function MaterialReader({
   const openOriginal = async () => {
     if (!material.storagePath) return;
     try {
-      window.open(await getOriginalUrl(material.storagePath, material.type), "_blank", "noopener");
+      const path = material.storagePath;
+      await openOriginalInBrowser(() => getOriginalUrl(path, material.type));
     } catch {
       toast.error("Não foi possível abrir o arquivo.");
     }
